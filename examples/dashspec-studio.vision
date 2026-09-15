@@ -20,7 +20,7 @@ go command-palette -> studio when Escape
 go command-palette -> studio when select-command
   then focus editor open selected file
 
-on project-tree double-click file -> studio
+on project-tree double-click file -> editor
   then open tab and show resolve
 
 fixture project-tree

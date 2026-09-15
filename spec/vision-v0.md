@@ -68,14 +68,22 @@ fixture project-tree
 
 ### `on`
 
-Event on a block inside a screen, e.g. `on project-tree double-click file -> studio`.
+Interaction on a **block** inside a screen. Target after `->` is either:
+
+- another **block id** in the same screen (focus / in-screen flow), e.g.  
+  `on project-tree double-click file -> editor`
+- a **screen id** (leave screen), e.g. legacy cross-screen handlers
+
+Optional `then` describes side effects (open tab, show resolve, …).
+
+Graph view: `on` edges connect **block nodes** (smaller boxes under their screen), not self-loops on the screen.
 
 ## Player modes
 
 | Mode | Purpose |
 |---|---|
 | **Sketch** | Clickable wire UI + transition log |
-| **Transition graph** | Voyager-style screen graph (`go` solid, `on` dashed); click node → jump to sketch |
+| **Transition graph** | Screen `go` + block `on` graph; click node → jump to sketch |
 
 ## End
 

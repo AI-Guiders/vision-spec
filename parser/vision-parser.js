@@ -2,6 +2,8 @@
  * VisionSpec v0 parser — line-oriented, returns JSON-serializable IR.
  */
 
+import { resolveOnTarget } from "./vision-graph.js";
+
 const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end)\b/i;
 const TITLE_LINE = /^title\s+"([^"]*)"/i;
 const LAYOUT_ROW = /^row\s+\[(.+)\]\s*$/i;
@@ -126,6 +128,12 @@ export function parseVision(source) {
 
   if (!doc.id) throw new Error("Missing vision id");
   if (!doc.screens.length) throw new Error("No screens");
+
+  for (const h of doc.handlers) {
+    const { toScreen, toBlock } = resolveOnTarget(doc, h.block, h.to);
+    h.toScreen = toScreen;
+    h.toBlock = toBlock;
+  }
 
   return doc;
 }

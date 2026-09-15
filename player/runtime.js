@@ -318,12 +318,13 @@ function fireHandler(block, event, target, detail) {
     log(`No handler: ${block} ${event} ${target}`);
     return;
   }
-  currentScreenId = h.to;
+  currentScreenId = h.toScreen ?? h.to;
   overlayScreenId = null;
+  const dest = h.toBlock ? `${h.toBlock} (${h.toScreen ?? h.to})` : (h.toScreen ?? h.to);
   log(
     h.then
-      ? `${block} ${event} → ${h.to} — ${h.then}: ${detail}`
-      : `${block} ${event} → ${h.to}: ${detail}`,
+      ? `${block} ${event} → ${dest} — ${h.then}: ${detail}`
+      : `${block} ${event} → ${dest}: ${detail}`,
   );
   render();
   stage.focus();

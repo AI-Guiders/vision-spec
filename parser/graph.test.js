@@ -1,5 +1,5 @@
 import { parseVision } from "./vision-parser.js";
-import { buildTransitionGraph, isLayoutBoundBlock } from "./vision-graph.js";
+import { blockNodeId, buildTransitionGraph, isLayoutBoundBlock } from "./vision-graph.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -20,9 +20,25 @@ test("layout-bound blocks are not duplicated at screen root", () => {
   assert.equal(isLayoutBoundBlock(studio.blocks.find((b) => b.id === "resolve"), studio), false);
 });
 
-test("transition graph includes go and on edges", () => {
+test("on handler resolves block target inside screen", () => {
+  const doc = parseVision(example);
+  const h = doc.handlers.find((x) => x.block === "project-tree");
+  assert.ok(h);
+  assert.equal(h.toBlock, "editor");
+  assert.equal(h.toScreen, "studio");
+});
+
+test("transition graph links blocks for on handlers", () => {
   const doc = parseVision(example);
   const graph = buildTransitionGraph(doc);
   assert.ok(graph.edges.some((e) => e.kind === "go" && e.label === "Ctrl+K"));
-  assert.ok(graph.edges.some((e) => e.kind === "on" && e.block === "project-tree"));
+  assert.ok(
+    graph.edges.some(
+      (e) =>
+        e.kind === "on" &&
+        e.from === blockNodeId("project-tree") &&
+        e.to === blockNodeId("editor"),
+    ),
+  );
+  assert.ok(graph.nodes.some((n) => n.kind === "block" && n.blockId === "project-tree"));
 });

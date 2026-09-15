@@ -1,5 +1,5 @@
 /**
- * Build screen transition graph IR for Voyager-style view.
+ * Build screen + block transition graph IR for Voyager-style view.
  */
 
 export function layoutSlotIds(screen) {
@@ -24,12 +24,46 @@ export function screenForBlock(doc, blockId) {
   return doc.screens.find((s) => s.blocks.some((b) => b.id === blockId)) ?? null;
 }
 
+export function blockNodeId(blockId) {
+  return `block:${blockId}`;
+}
+
+export function resolveOnTarget(doc, sourceBlock, toToken) {
+  const host = screenForBlock(doc, sourceBlock);
+  if (host?.blocks.some((b) => b.id === toToken)) {
+    return { toScreen: host.id, toBlock: toToken };
+  }
+
+  const screen = doc.screens.find((s) => s.id === toToken);
+  if (screen) return { toScreen: toToken, toBlock: null };
+
+  throw new Error(`Unknown on target "${toToken}" for block "${sourceBlock}"`);
+}
+
 export function buildTransitionGraph(doc) {
   const nodes = doc.screens.map((s) => ({
     id: s.id,
+    kind: "screen",
     overlay: s.overlay,
     label: s.id,
   }));
+
+  const blockIds = new Set();
+  for (const h of doc.handlers) {
+    blockIds.add(h.block);
+    if (h.toBlock) blockIds.add(h.toBlock);
+  }
+
+  for (const blockId of blockIds) {
+    const host = screenForBlock(doc, blockId);
+    nodes.push({
+      id: blockNodeId(blockId),
+      kind: "block",
+      blockId,
+      host: host?.id ?? null,
+      label: blockId,
+    });
+  }
 
   const edges = [];
 
@@ -45,16 +79,17 @@ export function buildTransitionGraph(doc) {
   }
 
   for (const h of doc.handlers) {
-    const host = screenForBlock(doc, h.block);
-    const from = host?.id ?? h.to;
+    const from = blockNodeId(h.block);
+    const to = h.toBlock ? blockNodeId(h.toBlock) : (h.toScreen ?? h.to);
     edges.push({
-      id: `on:${h.block}:${h.event}:${h.to}`,
+      id: `on:${h.block}:${h.event}:${h.target}:${to}`,
       from,
-      to: h.to,
-      label: `on ${h.block} ${h.event} ${h.target}`,
+      to,
+      label: `${h.event} · ${h.target}`,
       kind: "on",
       block: h.block,
       event: h.event,
+      target: h.target,
       then: h.then,
     });
   }
