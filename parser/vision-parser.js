@@ -3,8 +3,10 @@
  */
 
 import { resolveOnTarget } from "./vision-graph.js";
+import { resolvePlugins } from "./plugins.js";
 
-const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end)\b/i;
+const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end|use)\b/i;
+const USE_LINE = /^use\s+(\S+)\s*$/i;
 const TITLE_LINE = /^title\s+"([^"]*)"/i;
 const LAYOUT_ROW = /^row\s+\[(.+)\]\s*$/i;
 const LAYOUT_COL = /^col\s+\[(.+)\]\s*$/i;
@@ -12,6 +14,7 @@ const PANEL_LINE = /^panel\s+(\S+)/i;
 const TREE_LINE = /^tree\s+(\S+)/i;
 const TABS_LINE = /^tabs\s+(\S+)/i;
 const PREVIEW_LINE = /^preview\s+(\S+)/i;
+const REPL_LINE = /^repl\s+(\S+)/i;
 const SEARCH_LINE = /^search\s*$/i;
 const COMMAND_LIST_LINE = /^command-list\s*$/i;
 const GO_LINE = /^go\s+(\S+)\s+->\s+(\S+)\s+when\s+(.+)$/i;
@@ -23,6 +26,7 @@ export function parseVision(source) {
   const doc = {
     id: "",
     title: "",
+    plugins: [],
     screens: [],
     fixtures: {},
     transitions: [],
@@ -57,12 +61,19 @@ export function parseVision(source) {
       continue;
     }
 
+    const useMatch = trimmed.match(USE_LINE);
+    if (useMatch) {
+      if (!doc.plugins.includes(useMatch[1])) doc.plugins.push(useMatch[1]);
+      continue;
+    }
+
     if (/^screen\s+/i.test(trimmed)) {
       const parts = trimmed.split(/\s+/);
       screen = {
         id: parts[1],
         overlay: parts.includes("overlay"),
         blocks: [],
+        deck: null,
       };
       doc.screens.push(screen);
       fixtureName = null;
@@ -111,6 +122,18 @@ export function parseVision(source) {
 
     if (/^end\s*$/i.test(trimmed)) break;
 
+    if (screen) {
+      const plugins = resolvePlugins(doc);
+      let handled = false;
+      for (const plugin of plugins) {
+        if (plugin.parseScreenLine?.({ screen, doc, lineNo: i + 1 }, trimmed)) {
+          handled = true;
+          break;
+        }
+      }
+      if (handled) continue;
+    }
+
     if (!screen) continue;
 
     let block = null;
@@ -121,6 +144,7 @@ export function parseVision(source) {
     else if ((m = trimmed.match(TREE_LINE))) screen.blocks.push({ kind: "tree", id: m[1] });
     else if ((m = trimmed.match(TABS_LINE))) screen.blocks.push({ kind: "tabs", id: m[1] });
     else if ((m = trimmed.match(PREVIEW_LINE))) screen.blocks.push({ kind: "preview", id: m[1] });
+    else if ((m = trimmed.match(REPL_LINE))) screen.blocks.push({ kind: "repl", id: m[1] });
     else if (SEARCH_LINE.test(trimmed)) screen.blocks.push({ kind: "search" });
     else if (COMMAND_LIST_LINE.test(trimmed)) screen.blocks.push({ kind: "command-list" });
     else if (KEYWORD_LINE.test(trimmed)) throw new Error(`Line ${i + 1}: unexpected: ${trimmed}`);

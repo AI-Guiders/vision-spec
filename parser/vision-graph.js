@@ -2,8 +2,13 @@
  * Build screen + block transition graph IR for Voyager-style view.
  */
 
-export function layoutSlotIds(screen) {
+import { deckZoneIds, resolvePlugins } from "./plugins.js";
+
+export function layoutSlotIds(screen, doc) {
   const ids = new Set();
+  if (doc) {
+    for (const z of deckZoneIds(screen, resolvePlugins(doc))) ids.add(z);
+  }
   for (const block of screen.blocks) {
     if (block.kind === "row" || block.kind === "col") {
       for (const slot of block.slots) ids.add(slot);
@@ -12,12 +17,12 @@ export function layoutSlotIds(screen) {
   return ids;
 }
 
-/** Blocks rendered only inside row/col slots — skip at screen root. */
-export function isLayoutBoundBlock(block, screen) {
+/** Blocks rendered only inside layout slots — skip at screen root. */
+export function isLayoutBoundBlock(block, screen, doc) {
   if (!block.id) return false;
-  const slots = layoutSlotIds(screen);
+  const slots = layoutSlotIds(screen, doc);
   if (!slots.has(block.id)) return false;
-  return ["tree", "tabs", "preview", "panel"].includes(block.kind);
+  return ["tree", "tabs", "preview", "panel", "repl"].includes(block.kind);
 }
 
 export function screenForBlock(doc, blockId) {
@@ -45,7 +50,7 @@ export function buildTransitionGraph(doc) {
     id: s.id,
     kind: "screen",
     overlay: s.overlay,
-    label: s.id,
+    label: s.deck?.preset ? `${s.id} · ${s.deck.preset}` : s.id,
   }));
 
   const blockIds = new Set();
