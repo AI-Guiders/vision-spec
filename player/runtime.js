@@ -197,12 +197,20 @@ function renderBlock(block, screen) {
       renderCommandList(body);
       break;
     case "panel":
-      body.textContent = block.id === "resolve"
-        ? "Resolve OK — federation graph (fixture)"
-        : `${block.id} panel`;
+      if (block.id === "resolve") {
+        body.textContent = "Resolve OK — federation graph (fixture)";
+      } else if (block.id === "layout-board") {
+        body.innerHTML = `<div class="layout-board-sketch muted">Layout board · Phase 2<br/>grammar exists · drag UI later</div>`;
+      } else {
+        body.textContent = `${block.id} panel`;
+      }
       break;
     case "repl":
-      renderRepl(body, block.id);
+      if (block.id === "data-lab") renderDataLab(body, block.id);
+      else renderRepl(body, block.id);
+      break;
+    case "pad":
+      renderPad(body, block.id);
       break;
     default:
       body.textContent = block.kind;
@@ -213,7 +221,7 @@ function renderBlock(block, screen) {
 
 function findBlock(screen, id) {
   return screen.blocks.find(
-    (b) => b.id === id && ["tree", "tabs", "preview", "panel", "repl"].includes(b.kind),
+    (b) => b.id === id && ["tree", "tabs", "preview", "panel", "repl", "pad"].includes(b.kind),
   );
 }
 
@@ -223,6 +231,8 @@ function zoneLabel(zoneId) {
     editor: "Document editor",
     "report-preview": "Report preview",
     "data-lab": "SQL Browser",
+    "script-pad": "Script Pad",
+    "layout-board": "Layout board",
     resolve: "Resolve / EICAS",
   };
   return labels[zoneId] ?? zoneId;
@@ -237,6 +247,58 @@ function renderRepl(container, fixtureId) {
   for (const line of lines) {
     const div = document.createElement("div");
     div.className = "repl-line";
+    div.textContent = line;
+    container.appendChild(div);
+  }
+}
+
+function renderDataLab(container, fixtureId) {
+  const lines = fixture(fixtureId);
+  container.className = "block-body data-lab-sketch";
+  const grid = document.createElement("div");
+  grid.className = "data-lab-grid";
+
+  const sources = document.createElement("div");
+  sources.className = "data-lab-pane";
+  sources.innerHTML = `<div class="data-lab-pane-title">Sources</div><div class="data-lab-pane-body">${lines[0] ?? "connector …"}</div>`;
+
+  const schema = document.createElement("div");
+  schema.className = "data-lab-pane";
+  schema.innerHTML = `<div class="data-lab-pane-title">Schema</div><div class="data-lab-pane-body">${lines[1] ?? "schema tree …"}</div>`;
+
+  const repl = document.createElement("div");
+  repl.className = "data-lab-pane data-lab-pane-wide";
+  const replTitle = document.createElement("div");
+  replTitle.className = "data-lab-pane-title";
+  replTitle.textContent = "REPL + grid";
+  repl.appendChild(replTitle);
+  const replBody = document.createElement("div");
+  replBody.className = "data-lab-pane-body";
+  for (const line of lines.slice(2)) {
+    const div = document.createElement("div");
+    div.className = "repl-line";
+    div.textContent = line;
+    replBody.appendChild(div);
+  }
+  if (lines.length <= 2) replBody.textContent = "SELECT … · grid";
+  repl.appendChild(replBody);
+
+  grid.appendChild(sources);
+  grid.appendChild(schema);
+  grid.appendChild(repl);
+  container.appendChild(grid);
+}
+
+function renderPad(container, fixtureId) {
+  const lines = fixture(fixtureId);
+  container.className = "block-body pad-sketch";
+  if (!lines.length) {
+    container.textContent = "> create report with …";
+    return;
+  }
+  for (const line of lines) {
+    const div = document.createElement("div");
+    div.className = "pad-line";
     div.textContent = line;
     container.appendChild(div);
   }

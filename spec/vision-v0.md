@@ -41,6 +41,7 @@ end
 | `tabs <id>` | tab strip sketch |
 | `preview <id>` | preview placeholder |
 | `repl <id>` | data-lab / REPL sketch; uses `fixture <id>` if present |
+| `pad <id>` | Script Pad sketch (STUDIO-ADR-0002 `script-pad` zone) |
 | `search` | search field sketch |
 | `command-list` | list; uses fixture named `command-list` or last fixture |
 

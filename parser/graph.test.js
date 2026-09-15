@@ -25,6 +25,10 @@ test("layout-bound blocks are not duplicated at screen root", () => {
     true,
   );
   assert.equal(
+    isLayoutBoundBlock(studio.blocks.find((b) => b.id === "script-pad"), studio, doc),
+    true,
+  );
+  assert.equal(
     isLayoutBoundBlock(studio.blocks.find((b) => b.id === "editor"), studio, doc),
     true,
   );

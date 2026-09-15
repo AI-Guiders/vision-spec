@@ -19,12 +19,13 @@ test("mental-model plugin parses STUDIO-ADR-0002 deck lines", () => {
   assert.equal(studio.deck.preset, "report-author");
   assert.equal(studio.deck.topology, "(MFD)(F)");
   assert.deepEqual(studio.deck.forward, ["report-preview"]);
+  assert.deepEqual(studio.deck.mfdTabs, ["Project", "Layout", "Pad"]);
   assert.deepEqual(studio.deck.mfdSlots, ["spec-tree", "editor"]);
   assert.equal(studio.deck.mfdSplit, "data-lab");
   assert.equal(studio.deck.eicas, "resolve");
 });
 
-test("deck zone ids come from plugin, not row/col", () => {
+test("deck zone ids include MFD tab zones per STUDIO-ADR-0002", () => {
   const doc = parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
   const plugins = resolvePlugins(doc);
@@ -34,12 +35,19 @@ test("deck zone ids come from plugin, not row/col", () => {
   assert.ok(zones.has("report-preview"));
   assert.ok(zones.has("data-lab"));
   assert.ok(zones.has("resolve"));
+  assert.ok(zones.has("script-pad"));
+  assert.ok(zones.has("layout-board"));
 });
 
-test("repl block is a first-class sketch primitive", () => {
+test("pad block and script-pad fixture", () => {
   const doc = parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
-  const repl = studio.blocks.find((b) => b.kind === "repl");
-  assert.equal(repl?.id, "data-lab");
-  assert.ok(doc.fixtures["data-lab"]?.length >= 2);
+  const pad = studio.blocks.find((b) => b.kind === "pad");
+  assert.equal(pad?.id, "script-pad");
+  assert.ok(doc.fixtures["script-pad"]?.length >= 2);
+});
+
+test("data-lab repl uses three-pane SQL Browser sketch", () => {
+  const doc = parseVision(example);
+  assert.ok(doc.fixtures["data-lab"]?.length >= 3);
 });

@@ -4,8 +4,15 @@ const PRESET_LINE = /^preset\s+(\S+)\s*$/i;
 const TOPOLOGY_LINE = /^topology\s+((?:\([^)]+\))+)\s*$/i;
 const FORWARD_LINE = /^forward\s+(.+)$/i;
 const MFD_LINE = /^mfd\s+(.+)$/i;
+const MFD_TABS_LINE = /^mfd-tabs\s+(.+)$/i;
 const SPLIT_LINE = /^split\s+(\S+)\s*$/i;
 const EICAS_LINE = /^eicas\s+(\S+)\s*$/i;
+
+/** report-author tab id → zone id (STUDIO-ADR-0002 §3) */
+const REPORT_AUTHOR_TAB_ZONES = {
+  Layout: "layout-board",
+  Pad: "script-pad",
+};
 
 export function parseScreenLine(screen, trimmed) {
   let m;
@@ -34,6 +41,12 @@ export function parseScreenLine(screen, trimmed) {
     return true;
   }
 
+  if ((m = trimmed.match(MFD_TABS_LINE))) {
+    ensureDeck(screen);
+    screen.deck.mfdTabs = m[1].split("|").map((s) => s.trim()).filter(Boolean);
+    return true;
+  }
+
   if ((m = trimmed.match(SPLIT_LINE))) {
     ensureDeck(screen);
     screen.deck.mfdSplit = m[1];
@@ -52,12 +65,16 @@ export function parseScreenLine(screen, trimmed) {
 export function deckZoneIdsFromScreen(screen) {
   const deck = screen.deck;
   if (!deck) return [];
-  const ids = [];
-  for (const z of deck.forward ?? []) ids.push(z);
-  for (const z of deck.mfdSlots ?? []) ids.push(z);
-  if (deck.mfdSplit) ids.push(deck.mfdSplit);
-  if (deck.eicas) ids.push(deck.eicas);
-  return ids;
+  const ids = new Set();
+  for (const z of deck.forward ?? []) ids.add(z);
+  for (const z of deck.mfdSlots ?? []) ids.add(z);
+  if (deck.mfdSplit) ids.add(deck.mfdSplit);
+  if (deck.eicas) ids.add(deck.eicas);
+  for (const tab of deck.mfdTabs ?? []) {
+    const zone = REPORT_AUTHOR_TAB_ZONES[tab];
+    if (zone) ids.add(zone);
+  }
+  return [...ids];
 }
 
 function ensureDeck(screen) {
@@ -67,6 +84,7 @@ function ensureDeck(screen) {
       topology: null,
       forward: [],
       mfdSlots: [],
+      mfdTabs: [],
       mfdSplit: null,
       eicas: null,
     };

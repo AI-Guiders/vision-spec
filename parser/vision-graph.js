@@ -22,7 +22,7 @@ export function isLayoutBoundBlock(block, screen, doc) {
   if (!block.id) return false;
   const slots = layoutSlotIds(screen, doc);
   if (!slots.has(block.id)) return false;
-  return ["tree", "tabs", "preview", "panel", "repl"].includes(block.kind);
+  return ["tree", "tabs", "preview", "panel", "repl", "pad"].includes(block.kind);
 }
 
 export function screenForBlock(doc, blockId) {

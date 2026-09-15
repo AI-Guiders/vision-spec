@@ -15,6 +15,7 @@ const TREE_LINE = /^tree\s+(\S+)/i;
 const TABS_LINE = /^tabs\s+(\S+)/i;
 const PREVIEW_LINE = /^preview\s+(\S+)/i;
 const REPL_LINE = /^repl\s+(\S+)/i;
+const PAD_LINE = /^pad\s+(\S+)/i;
 const SEARCH_LINE = /^search\s*$/i;
 const COMMAND_LIST_LINE = /^command-list\s*$/i;
 const GO_LINE = /^go\s+(\S+)\s+->\s+(\S+)\s+when\s+(.+)$/i;
@@ -145,6 +146,7 @@ export function parseVision(source) {
     else if ((m = trimmed.match(TABS_LINE))) screen.blocks.push({ kind: "tabs", id: m[1] });
     else if ((m = trimmed.match(PREVIEW_LINE))) screen.blocks.push({ kind: "preview", id: m[1] });
     else if ((m = trimmed.match(REPL_LINE))) screen.blocks.push({ kind: "repl", id: m[1] });
+    else if ((m = trimmed.match(PAD_LINE))) screen.blocks.push({ kind: "pad", id: m[1] });
     else if (SEARCH_LINE.test(trimmed)) screen.blocks.push({ kind: "search" });
     else if (COMMAND_LIST_LINE.test(trimmed)) screen.blocks.push({ kind: "command-list" });
     else if (KEYWORD_LINE.test(trimmed)) throw new Error(`Line ${i + 1}: unexpected: ${trimmed}`);

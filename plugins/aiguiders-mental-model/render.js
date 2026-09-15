@@ -1,7 +1,18 @@
 /**
- * Render STUDIO-ADR-0002 / GUIDERS report-author topology sketch.
- * Forward band · MFD (main + split) · EICAS strip.
+ * Render STUDIO-ADR-0002 report-author sketch:
+ * Cockpit + PFD · Forward · MFD tabs + split · EICAS
  */
+
+const REPORT_AUTHOR_TABS = [
+  { id: "Project", label: "Project" },
+  { id: "Layout", label: "Layout*", disabled: true },
+  { id: "Pad", label: "Pad" },
+];
+
+const TAB_ZONE = {
+  Layout: "layout-board",
+  Pad: "script-pad",
+};
 
 export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   const deck = screen.deck;
@@ -12,17 +23,11 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   root.dataset.preset = deck.preset ?? "";
   root.dataset.topology = deck.topology ?? "";
 
-  const chrome = document.createElement("div");
-  chrome.className = "deck-chrome";
-  chrome.textContent = `${deck.preset ?? "preset"} · ${deck.topology ?? "topology"}`;
-  root.appendChild(chrome);
+  root.appendChild(renderCockpit(deck));
 
   const forward = document.createElement("div");
   forward.className = "deck-forward";
-  const forwardLabel = document.createElement("div");
-  forwardLabel.className = "deck-band-label";
-  forwardLabel.textContent = "Forward";
-  forward.appendChild(forwardLabel);
+  forward.appendChild(bandLabel("Forward · 2nd monitor (STUDIO-ADR-0001)"));
   const forwardBody = document.createElement("div");
   forwardBody.className = "deck-forward-body";
   for (const zoneId of deck.forward ?? []) {
@@ -33,20 +38,71 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
 
   const mfd = document.createElement("div");
   mfd.className = "deck-mfd";
-  const mfdLabel = document.createElement("div");
-  mfdLabel.className = "deck-band-label";
-  mfdLabel.textContent = "MFD";
-  mfd.appendChild(mfdLabel);
+  mfd.appendChild(bandLabel("MFD"));
+
+  const tabs = deck.mfdTabs?.length ? deck.mfdTabs : ["Project"];
+  const tabBar = document.createElement("div");
+  tabBar.className = "deck-mfd-tabs";
+  const tabPanels = document.createElement("div");
+  tabPanels.className = "deck-mfd-tab-panels";
+
+  let activeTab = tabs[0];
+
+  for (const tabId of tabs) {
+    const meta = REPORT_AUTHOR_TABS.find((t) => t.id === tabId) ?? { id: tabId, label: tabId };
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "deck-mfd-tab";
+    btn.textContent = meta.label;
+    btn.dataset.tabId = tabId;
+    if (meta.disabled) {
+      btn.disabled = true;
+      btn.title = "Phase 2 — layout board";
+    }
+
+    const panel = document.createElement("div");
+    panel.className = "deck-mfd-tab-panel";
+    panel.dataset.tabId = tabId;
+    panel.hidden = tabId !== activeTab;
+
+    if (tabId === "Project") {
+      const row = document.createElement("div");
+      row.className = "deck-mfd-project-row";
+      for (const zoneId of deck.mfdSlots ?? []) {
+        const wide = zoneId === "editor" || zoneId.endsWith("-editor");
+        row.appendChild(wrapZone(zoneId, wide ? "mfd-wide" : "mfd-narrow", renderZone, labelForZone));
+      }
+      panel.appendChild(row);
+    } else if (TAB_ZONE[tabId]) {
+      panel.appendChild(wrapZone(TAB_ZONE[tabId], "mfd-tab-fill", renderZone, labelForZone));
+    } else {
+      panel.innerHTML = `<span class="muted">${tabId} tab</span>`;
+    }
+
+    if (!meta.disabled) {
+      btn.addEventListener("click", () => {
+        activeTab = tabId;
+        tabBar.querySelectorAll(".deck-mfd-tab").forEach((el) => {
+          el.classList.toggle("active", el.dataset.tabId === tabId);
+        });
+        tabPanels.querySelectorAll(".deck-mfd-tab-panel").forEach((el) => {
+          el.hidden = el.dataset.tabId !== tabId;
+        });
+      });
+    }
+    if (tabId === activeTab) btn.classList.add("active");
+
+    tabBar.appendChild(btn);
+    tabPanels.appendChild(panel);
+  }
+
+  mfd.appendChild(tabBar);
 
   const mfdRow = document.createElement("div");
   mfdRow.className = "deck-mfd-row";
-
   const main = document.createElement("div");
   main.className = "deck-mfd-main";
-  for (const zoneId of deck.mfdSlots ?? []) {
-    const wide = zoneId === "editor" || zoneId.endsWith("-editor");
-    main.appendChild(wrapZone(zoneId, wide ? "mfd-wide" : "mfd", renderZone, labelForZone));
-  }
+  main.appendChild(tabPanels);
   mfdRow.appendChild(main);
 
   if (deck.mfdSplit) {
@@ -59,15 +115,43 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   if (deck.eicas) {
     const eicas = document.createElement("div");
     eicas.className = "deck-eicas";
-    const eicasLabel = document.createElement("div");
-    eicasLabel.className = "deck-band-label";
-    eicasLabel.textContent = "EICAS";
-    eicas.appendChild(eicasLabel);
+    eicas.appendChild(bandLabel("EICAS · resolve / SQL / prod gate"));
     eicas.appendChild(wrapZone(deck.eicas, "eicas", renderZone, labelForZone));
     root.appendChild(eicas);
   }
 
   return root;
+}
+
+function renderCockpit(deck) {
+  const cockpit = document.createElement("div");
+  cockpit.className = "deck-cockpit";
+
+  const ccl = document.createElement("div");
+  ccl.className = "deck-ccl";
+  ccl.innerHTML = `
+    <span class="deck-ccl-brand">CCL</span>
+    <span class="deck-ccl-slash">/add card · /bind · /preview effective</span>`;
+  cockpit.appendChild(ccl);
+
+  const pfd = document.createElement("div");
+  pfd.className = "deck-pfd";
+  pfd.innerHTML = `
+    <span class="deck-pfd-chip">demo-soak</span>
+    <span class="deck-pfd-chip">main</span>
+    <span class="deck-pfd-chip">demo-db · OK</span>
+    <span class="deck-pfd-chip deck-pfd-resolve">resolve OK</span>
+    <span class="deck-pfd-meta">${deck.preset ?? "preset"} · ${deck.topology ?? "topology"}</span>`;
+  cockpit.appendChild(pfd);
+
+  return cockpit;
+}
+
+function bandLabel(text) {
+  const el = document.createElement("div");
+  el.className = "deck-band-label";
+  el.textContent = text;
+  return el;
 }
 
 function wrapZone(zoneId, bandClass, renderZone, labelForZone) {
