@@ -5,7 +5,7 @@ vision dashspec-studio
   title "DashSpec Studio — report author"
 
 screen studio
-  row [ project-tree | editor | preview ]
+  row [ project-tree | editor | report-preview ]
   panel resolve
   tree project-tree
   tabs editor

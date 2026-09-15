@@ -200,3 +200,77 @@ select, .file-btn {
   color: var(--muted);
   margin-left: 6px;
 }
+
+.graph-view {
+  height: 100%;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-svg {
+  flex: 1;
+  width: 100%;
+  min-height: 360px;
+  background: radial-gradient(circle at 30% 20%, #2a3140 0%, var(--bg) 55%);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.graph-node { cursor: pointer; }
+.graph-node rect {
+  fill: var(--panel);
+  stroke: var(--border);
+  stroke-width: 2;
+}
+.graph-node.active rect {
+  stroke: var(--accent);
+  fill: #2a3544;
+}
+.graph-node.overlay rect { stroke-dasharray: 6 4; }
+
+.graph-node-title {
+  fill: var(--text);
+  text-anchor: middle;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.graph-node-sub {
+  fill: var(--muted);
+  text-anchor: middle;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.graph-edge {
+  fill: none;
+  stroke-width: 2;
+}
+.graph-edge-go { stroke: #7aa2d6; }
+.graph-edge-on { stroke: #a78bfa; stroke-dasharray: 6 4; }
+
+.graph-edge-label {
+  fill: var(--muted);
+  font-size: 11px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.graph-legend .swatch {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.graph-legend .swatch.go { background: #7aa2d6; }
+.graph-legend .swatch.on { background: #a78bfa; }

@@ -1,4 +1,6 @@
 import { parseVision, entryScreen } from "../parser/vision-parser.js";
+import { isLayoutBoundBlock } from "../parser/vision-graph.js";
+import { renderTransitionGraph } from "./transition-graph.js";
 
 const stage = document.getElementById("stage");
 const overlayRoot = document.getElementById("overlay-root");
@@ -6,13 +8,14 @@ const logList = document.getElementById("log-list");
 const titleEl = document.getElementById("vision-title");
 const exampleSelect = document.getElementById("example-select");
 const fileInput = document.getElementById("file-input");
+const viewModeSelect = document.getElementById("view-mode");
 
 /** @type {ReturnType<parseVision> | null} */
 let doc = null;
 let currentScreenId = "";
-let baseScreenId = "";
-/** @type {string | null} */
 let overlayScreenId = null;
+/** @type {"sketch" | "graph"} */
+let viewMode = "sketch";
 
 const keyTriggers = new Map([
   ["k", "Ctrl+K"],
@@ -25,6 +28,10 @@ init();
 async function init() {
   exampleSelect.addEventListener("change", () => loadUrl(exampleSelect.value));
   fileInput.addEventListener("change", onFilePick);
+  viewModeSelect.addEventListener("change", () => {
+    viewMode = viewModeSelect.value;
+    render();
+  });
   stage.addEventListener("keydown", onKeyDown);
   overlayRoot.addEventListener("keydown", onKeyDown);
 
@@ -51,12 +58,11 @@ function loadText(source) {
   doc = parseVision(source);
   titleEl.textContent = doc.title || doc.id;
   currentScreenId = entryScreen(doc).id;
-  baseScreenId = currentScreenId;
   overlayScreenId = null;
   logList.innerHTML = "";
   render();
   log(`Loaded vision ${doc.id}`);
-  stage.focus();
+  if (viewMode === "sketch") stage.focus();
 }
 
 function render() {
@@ -64,6 +70,32 @@ function render() {
   overlayRoot.innerHTML = "";
   overlayRoot.classList.add("hidden");
   overlayRoot.setAttribute("aria-hidden", "true");
+
+  if (!doc) return;
+
+  if (viewMode === "graph") {
+    stage.appendChild(
+      renderTransitionGraph(doc, {
+        activeScreenId: currentScreenId,
+        overlayScreenId,
+        onSelectScreen: (id) => {
+          const screen = doc.screens.find((s) => s.id === id);
+          if (screen?.overlay) {
+            overlayScreenId = id;
+          } else {
+            currentScreenId = id;
+            overlayScreenId = null;
+          }
+          viewMode = "sketch";
+          viewModeSelect.value = "sketch";
+          render();
+          log(`Graph → sketch: ${id}`);
+          stage.focus();
+        },
+      }),
+    );
+    return;
+  }
 
   const base = doc.screens.find((s) => s.id === currentScreenId);
   if (!base) return;
@@ -85,6 +117,7 @@ function renderScreen(screen, isOverlay) {
   root.dataset.screenId = screen.id;
 
   for (const block of screen.blocks) {
+    if (isLayoutBoundBlock(block, screen)) continue;
     root.appendChild(renderBlock(block, screen));
   }
 
@@ -260,7 +293,6 @@ function transition(when, detail) {
   const target = doc.screens.find((s) => s.id === go.to);
   if (target?.overlay) {
     overlayScreenId = target.id;
-    baseScreenId = currentScreenId;
   } else {
     currentScreenId = go.to;
     overlayScreenId = null;

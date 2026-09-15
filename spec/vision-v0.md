@@ -43,6 +43,8 @@ end
 
 Block ids in layouts reference nested `panel`/`tree`/etc. lines in the same screen.
 
+**Layout binding:** `tree` / `tabs` / `preview` / `panel` blocks whose `id` appears in a `row`/`col` slot render **only inside that slot**, not again at screen root (avoids duplication).
+
 ## Fixtures
 
 Indented or following lines under `fixture`:
@@ -67,6 +69,13 @@ fixture project-tree
 ### `on`
 
 Event on a block inside a screen, e.g. `on project-tree double-click file -> studio`.
+
+## Player modes
+
+| Mode | Purpose |
+|---|---|
+| **Sketch** | Clickable wire UI + transition log |
+| **Transition graph** | Voyager-style screen graph (`go` solid, `on` dashed); click node → jump to sketch |
 
 ## End
 
