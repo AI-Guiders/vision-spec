@@ -12,8 +12,8 @@ const example = fs.readFileSync(
   "utf8",
 );
 
-test("layout-bound blocks are not duplicated at screen root", () => {
-  const doc = parseVision(example);
+test("layout-bound blocks are not duplicated at screen root", async () => {
+  const doc = await parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
   assert.ok(studio);
   assert.equal(
@@ -34,16 +34,16 @@ test("layout-bound blocks are not duplicated at screen root", () => {
   );
 });
 
-test("on handler resolves block target inside screen", () => {
-  const doc = parseVision(example);
+test("on handler resolves block target inside screen", async () => {
+  const doc = await parseVision(example);
   const h = doc.handlers.find((x) => x.block === "spec-tree");
   assert.ok(h);
   assert.equal(h.toBlock, "editor");
   assert.equal(h.toScreen, "studio");
 });
 
-test("transition graph links blocks for on handlers", () => {
-  const doc = parseVision(example);
+test("transition graph links blocks for on handlers", async () => {
+  const doc = await parseVision(example);
   const graph = buildTransitionGraph(doc);
   assert.ok(graph.edges.some((e) => e.kind === "go" && e.label === "Ctrl+K"));
   assert.ok(

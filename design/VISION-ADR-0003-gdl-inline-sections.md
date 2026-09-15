@@ -8,34 +8,35 @@
 
 ## Problem
 
-VisionSpec must be **self-contained**: one `.vision` file is enough for alignment review (screens, transitions, commands, deck). Ad-hoc fixtures (`Save … | /save | …`) duplicate federation GDL and drift from prod catalogs.
+VisionSpec must be **self-contained**: one `.vision` file is enough for alignment review (screens, transitions, commands, deck). Ad-hoc fixtures and JS re-parsers duplicate federation GDL and drift from prod catalogs.
 
 ## Decision
 
-1. **Inline GDL sections** at document top level — not external file refs:
-   - `catalog <id> … end catalog` — commands, phrases, bindings, defaults (GDL table syntax)
-   - `deck <id> … end deck` — preset blocks (same lines as `*.deck.gdl`)
+1. **Inline GDL sections** at document top level:
+   - `catalog <id> … end catalog`
+   - `deck <id> … end deck`
 
-2. **Borrow grammar, not runtime** — table rows, `defaults` key = value, `end <section>` blocks mirror `CatalogParser` / `DeckParser` in federation. VisionSpec does **not** invent a second command dialect.
+2. **Vision parser = section router** — extracts GDL spans, wraps document headers (`catalog` / `deck`), **does not parse GDL grammar**.
 
-3. **Parser routing (v0)** — `parser/gdl-inline.js` in vision-spec player (JS subset). Full F# parity and guiders-js wiring are **follow-up**, not blockers for DashSpec Studio alignment.
+3. **Authoritative parse = federation F#** — `CatalogParser` / `DeckParser` via `tools/VisionGdlBridge` (thin CLI, JSON IR to JS). No second dialect, no `gdl-inline.js` fork.
 
-4. **Screen binding** — `use-deck <preset>` on a screen applies `doc.deck.presets[]` to `screen.deck` (mental-model plugin). Deck lines on screen remain valid for legacy examples; prefer `use-deck` + inline `deck`.
+4. **Runtime wiring:**
+   - **Node / tests:** `parser/gdl-bridge.js` → `dotnet run` VisionGdlBridge
+   - **Browser player:** `scripts/vision-play-server.mjs` exposes `POST /__vision/gdl` → same bridge
+   - **IR mapping only in JS:** `parser/gdl-ir.js` (palette rows, `use-deck` binding)
 
-5. **Palette** — `command-list` block reads `doc.catalog` via `paletteRowsFromCatalog()`; fixture fallback only for minimal examples without catalog.
+5. **Vision-only deck extensions** (`mfd-tabs`, `split`) stay on **screen** lines (mental-model plugin), not in federation `deck` blocks.
 
-## Non-goals (this ADR)
+6. **Screen binding:** `use-deck <preset>` applies inline `doc.deck` preset to `screen.deck`.
 
-- JSON emit / gdlc build step for the web player
-- Full channels / profiles / mcp validation in vision player
-- Replacing prod `*.catalog.gdl` SSOT — vision is alignment copy; Studio prod still ships separate GDL files
+## Non-goals
 
-## Relation to guiders-js
-
-`@aiguiders/command-plane-catalog` indexes **parsed IR**, not GDL text. VisionSpec v0 parses inline catalog in JS; later: shared parser package or guiders-js `@aiguiders/authoring` catalog slice when published.
+- Replacing prod `*.catalog.gdl` / `*.deck.gdl` SSOT
+- Full channels/profiles validation in sketch player
+- guiders-js text parser (IR index only today)
 
 ## Consequences
 
-- `dashspec-studio.vision` carries inline catalog + deck; pipe `command-list` fixture removed
-- Tests: `parser/gdl-inline.test.js` + parser integration on example
-- Charter non-goal «CommandPalette = overlay, not fuzzy engine» unchanged — player sketch only
+- `npm test` builds bridge first; `gdl-bridge.test.js` asserts federation parse
+- `npm run play` uses dev server with GDL bridge (not raw `serve` without dotnet)
+- Deleted: `parser/gdl-inline.js` (JS grammar fork)

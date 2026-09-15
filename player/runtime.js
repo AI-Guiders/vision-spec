@@ -1,5 +1,5 @@
 import { parseVision, entryScreen } from "../parser/vision-parser.js";
-import { paletteRowsFromCatalog } from "../parser/gdl-inline.js";
+import { paletteRowsFromCatalog } from "../parser/gdl-ir.js";
 import { isLayoutBoundBlock } from "../parser/vision-graph.js";
 import { resolvePlugins } from "../parser/plugins.js";
 import { renderTransitionGraph } from "./transition-graph.js";
@@ -44,19 +44,19 @@ async function loadUrl(url) {
     if (!r.ok) throw new Error(`Failed to load ${url}`);
     return r.text();
   });
-  loadText(text);
+  await loadText(text);
 }
 
 function onFilePick(ev) {
   const file = ev.target.files?.[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => loadText(String(reader.result));
+  reader.onload = async () => loadText(String(reader.result));
   reader.readAsText(file);
 }
 
-function loadText(source) {
-  doc = parseVision(source);
+async function loadText(source) {
+  doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });
   titleEl.textContent = doc.title || doc.id;
   currentScreenId = entryScreen(doc).id;
   overlayScreenId = null;

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>AIGuiders.Platform.Modeling.Notations.Command</name></assembly>
+<members>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.SlashWireBody">
+ <summary>Pre-catalog slash/console wire: tokenized path + tail before longest-prefix resolve.</summary>
+</member>
+<member name="F:AIGuiders.Platform.Modeling.Notations.Command.InvocationLinePhase.Ready">
+ <summary>Line is runnable — Enter executes.</summary>
+</member>
+<member name="F:AIGuiders.Platform.Modeling.Notations.Command.InvocationLinePhase.Arg">
+ <summary>Collecting arg tail — ArgMechanic applies here.</summary>
+</member>
+<member name="F:AIGuiders.Platform.Modeling.Notations.Command.InvocationLinePhase.Path">
+ <summary>Completing command path or melody slug steps.</summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.InvocationLinePhase">
+ <summary>
+ Where the user is on the invocation line after engage (GUIDERS-ADR-0043).
+ Orthogonal to engage (Slash / Melody / Binding per ADR-0015).
+ </summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.InvocationEngageKind">
+ <summary>
+ How invocation started after engage consume (GUIDERS-ADR-0015) — notation-bound.
+ Distinct from ArgMechanic (arg-tail interaction, notation-agnostic).
+ </summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.ArgMechanic">
+ <summary>
+ Arg-tail interaction during InvocationLinePhase.Arg (GUIDERS-ADR-0043).
+ Notation-agnostic — distinct from InvocationEngageKind.
+ Implemented by CommandPlane guilds (Constructors, PrefixArmed, ArgSuggestions, …).
+ </summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.NormalizedCommandLine">
+ <summary>Post-resolve command path (catalog longest-prefix or explicit console path).</summary>
+</member>
+<member name="M:AIGuiders.Platform.Modeling.Notations.Command.Slash.SlashCommandNotation.tryParseLine(System.String)">
+ <summary>Slash gate: must start with '/', non-empty token path after it.</summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.Slash.SlashCommandNotation">
+ <summary>Slash/console line notation: body parse and line gate (GUIDERS-ADR-0021).</summary>
+</member>
+<member name="M:AIGuiders.Platform.Modeling.Notations.Command.InvocationNotation.pathsEqual(AIGuiders.Platform.Modeling.Notations.Command.NormalizedCommandLine,AIGuiders.Platform.Modeling.Notations.Command.NormalizedCommandLine)">
+ <summary>Case-insensitive canonical path equality (C# PathsEqual).</summary>
+</member>
+<member name="M:AIGuiders.Platform.Modeling.Notations.Command.InvocationNotation.fromPathSegments(System.Collections.Generic.IEnumerable{System.String})">
+ <summary>Filter blank segments, join with single space (C# FromPathSegments).</summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Notations.Command.InvocationNotation">
+ <summary>Normalized command-line notation (C# InvocationNotation).</summary>
+</member>
+</members>
+</doc>

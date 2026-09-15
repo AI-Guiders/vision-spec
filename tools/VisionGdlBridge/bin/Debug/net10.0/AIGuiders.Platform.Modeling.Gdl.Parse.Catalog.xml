@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>AIGuiders.Platform.Modeling.Gdl.Parse.Catalog</name></assembly>
+<members>
+<member name="T:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogGrammarValidator.WireParse">
+<summary>
+ grammarId -&gt; wire -&gt; (ok, looksLike hint when the wire parses under a DIFFERENT grammar).
+</summary>
+</member>
+<member name="M:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogGrammarValidator.validateChannels(AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogDocument)">
+<summary>
+ Channels rule (mirrors CatalogParseContext.ValidateChannels): every non-palette
+ channel must declare an inner `grammar` block with command and argument.
+</summary>
+</member>
+<member name="M:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogGrammarValidator.validateInvocationSurfaces(Microsoft.FSharp.Core.FSharpOption{System.String},AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogDocument)">
+ <summary>Validate catalog defaults + per-command <c>surfaces</c> via SurfaceRegistry (ADR-0008 I1).</summary>
+</member>
+<member name="M:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogGrammarValidator.validate(Microsoft.FSharp.Core.FSharpOption{Microsoft.FSharp.Core.FSharpFunc{System.String,Microsoft.FSharp.Core.FSharpFunc{System.String,System.Tuple{System.Boolean,Microsoft.FSharp.Core.FSharpOption{System.String}}}}},AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogDocument)">
+<summary>
+ Defaults + bindings/melodies wire rules (mirrors CatalogGrammarValidator.Validate).
+</summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogGrammarValidator">
+<summary>
+ Phase 2 port of Platform CatalogGrammarValidator + CatalogParseContext.ValidateChannels.
+ Keyboard/melody wire checks take pluggable predicates — the wire parsers live
+ execution-side (ADR-0002: Modeling owns rules, Execution owns parsers). With
+ `keyboardParse = None` the wire checks are skipped ( Modeling stays parser-free);
+ Execution plugs its Notations.Keyboard wrappers when consuming.
+</summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogParser">
+<summary>
+ F# mirror of Platform Authoring.Command.Catalog parser (phase 1: structure, tables,
+ channels tree, defaults, profiles, diagnostics). Grammar cross-validation
+ (CatalogGrammarValidator / ValidateChannels) is a follow-up port.
+</summary>
+</member>
+<member name="T:AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.CatalogMapping">
+<summary>
+ Parse document → spine payload (CatalogPayload { Planet; Routes }).
+ DOI (Domain/Object/Intent, ADR-0154) comes ONLY from explicit catalog columns —
+ never inferred from the command id shape.
+</summary>
+</member>
+</members>
+</doc>

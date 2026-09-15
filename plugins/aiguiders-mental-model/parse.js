@@ -1,6 +1,6 @@
 /** Federation presentation topology lines → screen.deck IR (alignment only). */
 
-import { deckPresetToScreenDeck } from "../../parser/gdl-inline.js";
+import { deckPresetToScreenDeck } from "../../parser/gdl-ir.js";
 
 const PRESET_LINE = /^preset\s+(\S+)\s*$/i;
 const USE_DECK_LINE = /^use-deck\s+(\S+)\s*$/i;

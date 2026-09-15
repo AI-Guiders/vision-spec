@@ -12,8 +12,8 @@ const example = fs.readFileSync(
   "utf8",
 );
 
-test("mental-model plugin parses STUDIO-ADR-0002 deck lines", () => {
-  const doc = parseVision(example);
+test("mental-model plugin parses STUDIO-ADR-0002 deck lines", async () => {
+  const doc = await parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
   assert.ok(studio?.deck);
   assert.equal(studio.deck.preset, "report-author");
@@ -25,8 +25,8 @@ test("mental-model plugin parses STUDIO-ADR-0002 deck lines", () => {
   assert.equal(studio.deck.eicas, "resolve");
 });
 
-test("deck zone ids include MFD tab zones per STUDIO-ADR-0002", () => {
-  const doc = parseVision(example);
+test("deck zone ids include MFD tab zones per STUDIO-ADR-0002", async () => {
+  const doc = await parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
   const plugins = resolvePlugins(doc);
   const zones = deckZoneIds(studio, plugins);
@@ -39,15 +39,15 @@ test("deck zone ids include MFD tab zones per STUDIO-ADR-0002", () => {
   assert.ok(zones.has("layout-board"));
 });
 
-test("pad block and script-pad fixture", () => {
-  const doc = parseVision(example);
+test("pad block and script-pad fixture", async () => {
+  const doc = await parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
   const pad = studio.blocks.find((b) => b.kind === "pad");
   assert.equal(pad?.id, "script-pad");
   assert.ok(doc.fixtures["script-pad"]?.length >= 2);
 });
 
-test("data-lab repl uses three-pane SQL Browser sketch", () => {
-  const doc = parseVision(example);
+test("data-lab repl uses three-pane SQL Browser sketch", async () => {
+  const doc = await parseVision(example);
   assert.ok(doc.fixtures["data-lab"]?.length >= 3);
 });

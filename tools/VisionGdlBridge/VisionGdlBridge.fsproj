@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>VisionGdlBridge</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\guiders-fsharp\src\AIGuiders.Platform.Modeling.Gdl.Parse.Catalog\AIGuiders.Platform.Modeling.Gdl.Parse.Catalog.fsproj" />
+    <ProjectReference Include="..\..\..\guiders-fsharp\src\AIGuiders.Platform.Modeling.Gdl.Parse.Deck\AIGuiders.Platform.Modeling.Gdl.Parse.Deck.fsproj" />
+  </ItemGroup>
+</Project>

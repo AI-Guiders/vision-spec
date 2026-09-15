@@ -1,0 +1,64 @@
+import http from "node:http";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { invokeGdlBridgeSync } from "../parser/gdl-bridge.js";
+
+const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
+const PORT = Number(process.env.PORT || 5199);
+
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".vision": "text/plain; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+};
+
+async function readBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function serveStatic(req, res) {
+  let urlPath = req.url?.split("?")[0] ?? "/";
+  if (urlPath === "/") urlPath = "/player/";
+  const filePath = path.normalize(path.join(ROOT, urlPath.replace(/^\//, "")));
+  if (!filePath.startsWith(ROOT)) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
+  try {
+    const stat = await fs.stat(filePath);
+    const target = stat.isDirectory() ? path.join(filePath, "index.html") : filePath;
+    const data = await fs.readFile(target);
+    const ext = path.extname(target).toLowerCase();
+    res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
+    res.end(data);
+  } catch {
+    res.writeHead(404);
+    res.end("Not found");
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  if (req.method === "POST" && req.url === "/__vision/gdl") {
+    try {
+      const { kind, text } = JSON.parse(await readBody(req));
+      const payload = invokeGdlBridgeSync(kind, text);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(payload));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(String(err?.message ?? err));
+    }
+    return;
+  }
+  await serveStatic(req, res);
+});
+
+server.listen(PORT, () => {
+  console.log(`VisionSpec player http://localhost:${PORT}/player/ (GDL bridge POST /__vision/gdl)`);
+});

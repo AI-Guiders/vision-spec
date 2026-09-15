@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <assembly fullname="VisionGdlBridge">
+    <resource name="FSharpSignatureData.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpSignatureCompressedData.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpSignatureDataB.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpSignatureCompressedDataB.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpOptimizationData.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpOptimizationCompressedData.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpOptimizationDataB.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpOptimizationCompressedDataB.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpOptimizationInfo.VisionGdlBridge" action="remove"></resource>
+    <resource name="FSharpSignatureInfo.VisionGdlBridge" action="remove"></resource>
+  </assembly>
+</linker>

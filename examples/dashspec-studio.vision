@@ -1,86 +1,87 @@
-# DashSpec Studio — vision alignment
-# STUDIO-ADR-0002 report-author (full deck sketch)
-
-use aiguiders-mental-model
-
-vision dashspec-studio
-  title "DashSpec Studio — report author"
-
-catalog dashspec-studio
-defaults
-  command.surfaces = palette, ccl.filter
-  binding.chord-root = Ctrl+K
-end defaults
-phrases table
-  | name            | phrase               |
-  | save-doc        | save active document |
-  | open-demo-soak  | open demo_soak       |
-  | open-analytics  | open demo_analytics  |
-  | focus-preview   | focus preview        |
-  | check-project   | check project        |
-end phrases
-commands table
-  | command         | phrase          | help                          |
-  | doc.save        | save-doc        | Save active document          |
-  | file.open-soak  | open-demo-soak  | Open demo_soak report         |
-  | file.open-analytics | open-analytics | Open demo_analytics report |
-  | view.preview    | focus-preview   | Focus report preview          |
-  | project.check   | check-project   | Check project before save     |
-end commands
-bindings table
-  | gesture | command  |
-  | Ctrl+S  | doc.save |
-end bindings
-end catalog
-
-deck dashspec-studio
-preset report-author
-  topology (MFD)(F)
-  forward report-preview
-  mfd-tabs Project | Layout | Pad
-  mfd spec-tree | editor
-  split data-lab
-  eicas resolve
-end preset
-end deck
-
-screen studio
-  use-deck report-author
-
-  tree spec-tree
-  tabs editor
-  preview report-preview
-  repl data-lab
-  pad script-pad
-  panel layout-board
-  panel resolve
-
-screen command-palette overlay
-  command-list
-
-go studio -> command-palette when Ctrl+K
-go command-palette -> studio when Escape
-go command-palette -> studio when select-command
-  then focus editor open selected file
-
-on spec-tree double-click file -> editor
-  then open tab and show resolve
-
-fixture spec-tree
-  📁 planet-repo/
-  ├─ report.dashspec
-  ├─ libraries/
-  ├─ layouts/
-  ├─ diagrams/peak-kpi.dashdiagram
-  └─ sql/migrations/
-
-fixture data-lab
-  connector: demo-db · OK
-  schema: reports / cards / binds
-  repl: SELECT COUNT(*) FROM reports
-
-fixture script-pad
-  > create report with sql-server template ulsa-weekly
-  Plan: report.dashspec · filters.dashlibrary · catalog.gdl · 001_views.sql
-
-end
+# DashSpec Studio — vision alignment
+# STUDIO-ADR-0002 report-author (full deck sketch)
+
+use aiguiders-mental-model
+
+vision dashspec-studio
+  title "DashSpec Studio — report author"
+
+catalog dashspec-studio
+defaults
+  command.surfaces = palette, ccl.filter
+  binding.chord-root = Ctrl+K
+  grammar.keyboard.binding = keyboard-key-gesture
+end defaults
+phrases table
+  | name            | phrase               |
+  | save-doc        | save active document |
+  | open-demo-soak  | open demo_soak       |
+  | open-analytics  | open demo_analytics  |
+  | focus-preview   | focus preview        |
+  | check-project   | check project        |
+end phrases
+commands table
+  | command         | phrase          | help                          |
+  | doc.save        | save-doc        | Save active document          |
+  | file.open-soak  | open-demo-soak  | Open demo_soak report         |
+  | file.open-analytics | open-analytics | Open demo_analytics report |
+  | view.preview    | focus-preview   | Focus report preview          |
+  | project.check   | check-project   | Check project before save     |
+end commands
+bindings table
+  | gesture | command  |
+  | Ctrl+S  | doc.save |
+end bindings
+end catalog
+
+deck dashspec-studio
+preset report-author
+  topology (MFD)(F)
+  forward report-preview
+  mfd spec-tree | editor
+  eicas resolve
+end preset
+end deck
+
+screen studio
+  use-deck report-author
+  mfd-tabs Project | Layout | Pad
+  split data-lab
+
+  tree spec-tree
+  tabs editor
+  preview report-preview
+  repl data-lab
+  pad script-pad
+  panel layout-board
+  panel resolve
+
+screen command-palette overlay
+  command-list
+
+go studio -> command-palette when Ctrl+K
+go command-palette -> studio when Escape
+go command-palette -> studio when select-command
+  then focus editor open selected file
+
+on spec-tree double-click file -> editor
+  then open tab and show resolve
+
+fixture spec-tree
+  📁 planet-repo/
+  ├─ report.dashspec
+  ├─ libraries/
+  ├─ layouts/
+  ├─ diagrams/peak-kpi.dashdiagram
+  └─ sql/migrations/
+
+fixture data-lab
+  connector: demo-db · OK
+  schema: reports / cards / binds
+  repl: SELECT COUNT(*) FROM reports
+
+fixture script-pad
+  > create report with sql-server template ulsa-weekly
+  Plan: report.dashspec · filters.dashlibrary · catalog.gdl · 001_views.sql
+
+end
