@@ -44,16 +44,16 @@ fixture spec-tree
   └─ sql/migrations/
 
 fixture command-list
-  Save active document
-  Open demo_soak
-  Open demo_analytics
-  Focus preview
-  Reload resolve
+  Save active document | /save | Ctrl+S | Document · write editor to disk
+  Open demo_soak | /open demo_soak | · | File · report.dashspec
+  Open demo_analytics | /open demo_analytics | · | File · analytics template
+  Focus preview | /focus preview | · | View · switch to report preview
+  Check project | /check | · | Project · validate before save
 
 fixture data-lab
   connector: demo-db · OK
   schema: reports / cards / binds
-  repl: SELECT federation_status()
+  repl: SELECT COUNT(*) FROM reports
 
 fixture script-pad
   > create report with sql-server template ulsa-weekly

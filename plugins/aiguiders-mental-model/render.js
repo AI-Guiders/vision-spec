@@ -114,8 +114,7 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
 
   if (deck.eicas) {
     const eicas = document.createElement("div");
-    eicas.className = "deck-eicas";
-    eicas.appendChild(bandLabel("EICAS · resolve / SQL / prod gate"));
+    eicas.className = "deck-eicas deck-eicas-quiet";
     eicas.appendChild(wrapZone(deck.eicas, "eicas", renderZone, labelForZone));
     root.appendChild(eicas);
   }
@@ -123,16 +122,43 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   return root;
 }
 
+
+function renderCclBar() {
+  const ccl = document.createElement("div");
+  ccl.className = "deck-ccl";
+
+  const row = document.createElement("div");
+  row.className = "deck-ccl-input-row";
+
+  const prefix = document.createElement("span");
+  prefix.className = "deck-ccl-prefix";
+  prefix.textContent = "/";
+  prefix.setAttribute("aria-hidden", "true");
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "deck-ccl-input";
+  input.placeholder = "add card …";
+  input.setAttribute("aria-label", "Command line — type / then command name");
+  input.spellcheck = false;
+
+  row.appendChild(prefix);
+  row.appendChild(input);
+  ccl.appendChild(row);
+
+  const hint = document.createElement("div");
+  hint.className = "deck-ccl-hint";
+  hint.textContent = "Click here · type /command · Enter run · Esc cancel · Tab complete";
+  ccl.appendChild(hint);
+
+  return ccl;
+}
+
 function renderCockpit(deck) {
   const cockpit = document.createElement("div");
   cockpit.className = "deck-cockpit";
 
-  const ccl = document.createElement("div");
-  ccl.className = "deck-ccl";
-  ccl.innerHTML = `
-    <span class="deck-ccl-brand">CCL</span>
-    <span class="deck-ccl-slash">/add card · /bind · /preview effective</span>`;
-  cockpit.appendChild(ccl);
+  cockpit.appendChild(renderCclBar());
 
   const pfd = document.createElement("div");
   pfd.className = "deck-pfd";
@@ -140,7 +166,6 @@ function renderCockpit(deck) {
     <span class="deck-pfd-chip">demo-soak</span>
     <span class="deck-pfd-chip">main</span>
     <span class="deck-pfd-chip">demo-db · OK</span>
-    <span class="deck-pfd-chip deck-pfd-resolve">resolve OK</span>
     <span class="deck-pfd-meta">${deck.preset ?? "preset"} · ${deck.topology ?? "topology"}</span>`;
   cockpit.appendChild(pfd);
 

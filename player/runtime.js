@@ -136,6 +136,36 @@ function renderScreen(screen, isOverlay) {
     }
   }
 
+  if (isOverlay && screenHasCommandPalette(screen)) {
+    const panel = document.createElement("div");
+    panel.className = "sketch-block overlay-card palette-panel";
+    const body = document.createElement("div");
+    body.className = "block-body palette-body";
+    panel.appendChild(body);
+    renderCommandPalette(body);
+    root.appendChild(panel);
+    setTimeout(() => {
+      const search = root.querySelector(".palette-search");
+      search?.focus();
+    }, 0);
+    return root;
+  }
+
+  if (isOverlay && screenHasCommandPalette(screen)) {
+    const panel = document.createElement("div");
+    panel.className = "sketch-block overlay-card palette-panel";
+    const body = document.createElement("div");
+    body.className = "block-body palette-body";
+    panel.appendChild(body);
+    renderCommandPalette(body);
+    root.appendChild(panel);
+    setTimeout(() => {
+      const search = root.querySelector(".palette-search");
+      search?.focus();
+    }, 0);
+    return root;
+  }
+
   for (const block of screen.blocks) {
     if (isLayoutBoundBlock(block, screen, doc)) continue;
     root.appendChild(renderBlock(block, screen));
@@ -150,6 +180,14 @@ function renderScreen(screen, isOverlay) {
   }
 
   return root;
+}
+
+function screenHasCommandPalette(screen) {
+  return screen.blocks.some((b) => b.kind === "command-list");
+}
+
+function screenHasCommandPalette(screen) {
+  return screen.blocks.some((b) => b.kind === "command-list");
 }
 
 function renderBlock(block, screen) {
@@ -198,7 +236,9 @@ function renderBlock(block, screen) {
       break;
     case "panel":
       if (block.id === "resolve") {
-        body.textContent = "Resolve OK — federation graph (fixture)";
+        wrap.classList.add("resolve-quiet");
+        title.remove();
+        /* Dark Cockpit: EICAS silent when project has no issues */
       } else if (block.id === "layout-board") {
         body.innerHTML = `<div class="layout-board-sketch muted">Layout board · Phase 2<br/>grammar exists · drag UI later</div>`;
       } else {
@@ -233,7 +273,7 @@ function zoneLabel(zoneId) {
     "data-lab": "SQL Browser",
     "script-pad": "Script Pad",
     "layout-board": "Layout board",
-    resolve: "Resolve / EICAS",
+    resolve: "Project issues",
   };
   return labels[zoneId] ?? zoneId;
 }
@@ -359,25 +399,162 @@ function renderTabs(container, id) {
 }
 
 function renderCommandList(container) {
-  const ul = document.createElement("ul");
-  ul.style.padding = "0";
-  ul.style.margin = "0";
-  for (const cmd of fixture("command-list")) {
-    const li = document.createElement("li");
-    li.className = "cmd-item";
-    li.tabIndex = 0;
-    li.textContent = cmd;
-    li.addEventListener("click", () => transition("select-command", cmd));
-    li.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") transition("select-command", cmd);
-    });
-    ul.appendChild(li);
+  renderCommandPalette(container);
+}
+
+/** @param {string} line */
+function parseCommandFixtureLine(line) {
+  const parts = line.split("|").map((p) => p.trim());
+  if (parts.length <= 1) {
+    return { title: line.trim(), invoke: "", hotkey: "", help: "" };
   }
-  container.appendChild(ul);
+  const [title, invoke = "", hotkey = "", help = ""] = parts;
+  return { title, invoke, hotkey, help };
+}
+
+function paletteFuzzyMatch(query, cmd) {
+  if (!query) return true;
+  const hay = `${cmd.title} ${cmd.invoke} ${cmd.help}`.toLowerCase();
+  const q = query.toLowerCase().trim();
+  let i = 0;
+  for (const ch of q) {
+    i = hay.indexOf(ch, i);
+    if (i === -1) return false;
+    i += 1;
+  }
+  return true;
+}
+
+function renderCommandPalette(container) {
+  const commands = fixture("command-list").map(parseCommandFixtureLine);
+  let selected = 0;
+
+  const search = document.createElement("input");
+  search.className = "palette-search search-input";
+  search.type = "search";
+  search.placeholder = "Type to filter commands…";
+  search.setAttribute("aria-label", "Filter commands");
+  container.appendChild(search);
+
+  const list = document.createElement("ul");
+  list.className = "palette-list";
+  container.appendChild(list);
+
+  const footer = document.createElement("div");
+  footer.className = "palette-footer muted";
+  footer.textContent = "↑↓ navigate · Enter run · Esc close · or type / in cockpit";
+  container.appendChild(footer);
+
+  function runCommand(cmd) {
+    transition("select-command", cmd.title);
+  }
+
+  function paint() {
+    const query = search.value;
+    const visible = commands.filter((cmd) => paletteFuzzyMatch(query, cmd));
+    if (selected >= visible.length) selected = Math.max(0, visible.length - 1);
+
+    list.replaceChildren();
+    visible.forEach((cmd, index) => {
+      const li = document.createElement("li");
+      li.className = "palette-item" + (index === selected ? " selected" : "");
+      li.tabIndex = -1;
+
+      const main = document.createElement("div");
+      main.className = "palette-item-main";
+
+      const title = document.createElement("span");
+      title.className = "palette-item-title";
+      title.textContent = cmd.title;
+      main.appendChild(title);
+
+      if (cmd.hotkey && cmd.hotkey !== "·") {
+        const key = document.createElement("kbd");
+        key.className = "palette-hotkey";
+        key.textContent = cmd.hotkey;
+        main.appendChild(key);
+      }
+
+      li.appendChild(main);
+
+      const meta = document.createElement("div");
+      meta.className = "palette-item-meta";
+      const invoke = document.createElement("code");
+      invoke.className = "palette-invoke";
+      invoke.textContent = cmd.invoke || "(no slash path)";
+      meta.appendChild(invoke);
+      if (cmd.help) {
+        const help = document.createElement("span");
+        help.className = "palette-help";
+        help.textContent = cmd.help;
+        meta.appendChild(help);
+      }
+      li.appendChild(meta);
+
+      li.addEventListener("mouseenter", () => {
+        selected = index;
+        paint();
+      });
+      li.addEventListener("click", () => runCommand(cmd));
+      list.appendChild(li);
+    });
+
+    if (!visible.length) {
+      const empty = document.createElement("li");
+      empty.className = "palette-empty muted";
+      empty.textContent = "No matching commands";
+      list.appendChild(empty);
+    }
+  }
+
+  search.addEventListener("input", () => {
+    selected = 0;
+    paint();
+  });
+
+  search.addEventListener("keydown", (e) => {
+    const visible = commands.filter((cmd) => paletteFuzzyMatch(search.value, cmd));
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selected = visible.length ? (selected + 1) % visible.length : 0;
+      paint();
+      list.querySelector(".palette-item.selected")?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selected = visible.length ? (selected - 1 + visible.length) % visible.length : 0;
+      paint();
+      list.querySelector(".palette-item.selected")?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const cmd = visible[selected];
+      if (cmd) runCommand(cmd);
+    }
+  });
+
+  paint();
 }
 
 function onKeyDown(e) {
   if (!doc) return;
+
+  if (overlayScreenId === "command-palette") {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      transition("Escape");
+      return;
+    }
+    if (e.ctrlKey && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      const search = overlayRoot.querySelector(".palette-search");
+      if (search) {
+        search.focus();
+        search.select();
+      }
+      return;
+    }
+    return;
+  }
+
   let trigger = null;
   if (e.key === "Escape") trigger = "Escape";
   else if (e.ctrlKey && e.key.toLowerCase() === "k") trigger = "Ctrl+K";

@@ -143,6 +143,101 @@ select, .file-btn {
   color: var(--text);
 }
 
+.palette-panel {
+  width: min(560px, 100%);
+}
+
+.palette-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.palette-search {
+  font-size: 0.95rem;
+  border-style: solid;
+}
+
+.palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(52vh, 360px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.palette-item {
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.palette-item:hover,
+.palette-item.selected {
+  border-color: var(--accent);
+  background: rgba(91, 155, 213, 0.12);
+}
+
+.palette-item-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.palette-item-title {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.palette-hotkey {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.palette-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 4px;
+  font-size: 0.78rem;
+}
+
+.palette-invoke {
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
+}
+
+.palette-help {
+  color: var(--muted);
+}
+
+.palette-help::before {
+  content: "· ";
+}
+
+.palette-empty {
+  list-style: none;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.palette-footer {
+  font-size: 0.68rem;
+  padding-top: 2px;
+}
+
 .cmd-item {
   list-style: none;
   margin: 0 0 4px;
@@ -180,6 +275,22 @@ select, .file-btn {
 }
 
 .panel-resolve { max-height: 120px; flex: 0; min-height: 80px; }
+.panel-resolve.resolve-quiet { display: none; }
+
+.deck-eicas-quiet {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: 4px;
+  gap: 0;
+  overflow: hidden;
+  opacity: 0.35;
+}
+
+.deck-eicas-quiet .deck-zone.eicas {
+  display: none;
+}
+
+
 
 /* Federation deck layout (aiguiders-mental-model plugin) */
 .deck-screen {
@@ -203,21 +314,51 @@ select, .file-btn {
 
 .deck-ccl {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.deck-ccl-input-row {
+  display: flex;
   align-items: center;
-  font-size: 0.8rem;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #1e222a;
+  overflow: hidden;
 }
 
-.deck-ccl-brand {
+.deck-ccl-prefix {
+  padding: 6px 2px 6px 10px;
   color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  user-select: none;
 }
 
-.deck-ccl-slash {
-  color: var(--muted);
+.deck-ccl-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
   font-family: ui-monospace, monospace;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  padding: 6px 10px 6px 2px;
+  outline: none;
+}
+
+.deck-ccl-input::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.deck-ccl-hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  padding-left: 2px;
 }
 
 .deck-pfd {
