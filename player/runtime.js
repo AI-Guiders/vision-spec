@@ -75,26 +75,26 @@ function render() {
   if (!doc) return;
 
   if (viewMode === "graph") {
-    stage.appendChild(
-      renderTransitionGraph(doc, {
-        activeScreenId: currentScreenId,
-        overlayScreenId,
-        onSelectScreen: (id) => {
-          const screen = doc.screens.find((s) => s.id === id);
-          if (screen?.overlay) {
-            overlayScreenId = id;
-          } else {
-            currentScreenId = id;
-            overlayScreenId = null;
-          }
-          viewMode = "sketch";
-          viewModeSelect.value = "sketch";
-          render();
-          log(`Graph → sketch: ${id}`);
-          stage.focus();
-        },
-      }),
-    );
+    const graphWrap = renderTransitionGraph(doc, {
+      activeScreenId: currentScreenId,
+      overlayScreenId,
+      onSelectScreen: (id) => {
+        const screen = doc.screens.find((s) => s.id === id);
+        if (screen?.overlay) {
+          overlayScreenId = id;
+        } else {
+          currentScreenId = id;
+          overlayScreenId = null;
+        }
+        viewMode = "sketch";
+        viewModeSelect.value = "sketch";
+        render();
+        log(`Graph → sketch: ${id}`);
+        stage.focus();
+      },
+    });
+    stage.appendChild(graphWrap);
+    graphWrap.initGraph();
     return;
   }
 
