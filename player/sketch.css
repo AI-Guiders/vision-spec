@@ -203,71 +203,22 @@ select, .file-btn {
 
 .graph-view {
   height: 100%;
-  min-height: 420px;
+  min-height: 380px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.graph-svg {
+.graph-canvas {
   flex: 1;
-  width: 100%;
-  min-height: 360px;
-  background: radial-gradient(circle at 30% 20%, #2a3140 0%, var(--bg) 55%);
+  min-height: 320px;
   border: 1px dashed var(--border);
   border-radius: 10px;
+  background: radial-gradient(circle at 30% 20%, #2a3140 0%, var(--bg) 55%);
 }
 
-.graph-node { cursor: pointer; }
-.graph-node rect {
-  fill: var(--panel);
-  stroke: var(--border);
-  stroke-width: 1.5;
-}
-.graph-node.active rect {
-  stroke: var(--accent);
-  fill: #2a3544;
-}
-.graph-node.overlay rect { stroke-dasharray: 4 3; }
-
-.graph-node-title {
-  fill: var(--text);
-  text-anchor: middle;
-  dominant-baseline: middle;
-  font-size: 11px;
-  font-weight: 600;
-  pointer-events: none;
-}
-.graph-node-badge {
-  fill: var(--muted);
-  text-anchor: end;
-  font-size: 8px;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.graph-edge {
-  fill: none;
-  stroke-width: 1.5;
-}
-.graph-edge-go { stroke: #7aa2d6; }
-.graph-edge-on { stroke: #a78bfa; stroke-dasharray: 5 4; }
-
-.graph-edge-label-wrap { pointer-events: none; }
-.graph-edge-label-bg {
-  fill: var(--bg);
-  stroke: var(--border);
-  stroke-width: 1;
-}
-.graph-edge-label-bg-go { stroke: #4a6a8a; }
-.graph-edge-label-bg-on { stroke: #6b5a8a; }
-
-.graph-edge-label {
-  fill: #c5cdd8;
-  font-size: 9px;
-  text-anchor: middle;
-  dominant-baseline: middle;
-  pointer-events: none;
+.graph-view .vis-network:focus {
+  outline: none;
 }
 
 .graph-legend {

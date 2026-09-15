@@ -1,182 +1,163 @@
+import { Network } from "../node_modules/vis-network/standalone/esm/vis-network.min.js";
+import { DataSet } from "../node_modules/vis-data/standalone/esm/vis-data.min.js";
 import { buildTransitionGraph } from "../parser/vision-graph.js";
 
-const NODE_W = 96;
-const NODE_H = 32;
-const LANE = 26;
-
 /**
- * Voyager-style screen graph — compact nodes, fanned edges, readable labels.
+ * Screen transition graph via vis-network (layout, edge labels, pan/zoom).
  */
 export function renderTransitionGraph(doc, { activeScreenId, overlayScreenId, onSelectScreen }) {
   const graph = buildTransitionGraph(doc);
   const wrap = document.createElement("div");
   wrap.className = "graph-view";
 
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("class", "graph-svg");
-  wrap.appendChild(svg);
+  const canvas = document.createElement("div");
+  canvas.className = "graph-canvas";
+  wrap.appendChild(canvas);
 
-  const positions = layoutNodes(graph.nodes);
-  const edgeGroups = groupEdges(graph.edges);
+  const parallel = bucketParallelEdges(graph.edges);
+  const nodes = new DataSet(
+    graph.nodes.map((node) => ({
+      id: node.id,
+      label: node.label,
+      level: node.overlay ? 0 : 1,
+      ...nodeStyle(node, activeScreenId, overlayScreenId),
+    })),
+  );
 
-  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  defs.innerHTML = `
-    <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#7aa2d6"/>
-    </marker>
-    <marker id="arrow-on" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#a78bfa"/>
-    </marker>`;
-  svg.appendChild(defs);
+  const edges = new DataSet(
+    graph.edges.map((edge) => {
+      const group = parallel.get(parallelKey(edge)) ?? [edge];
+      const index = group.indexOf(edge);
+      const lane = group.length === 1 ? 0.25 : 0.12 + (index / Math.max(1, group.length - 1)) * 0.55;
+      return {
+        id: edge.id,
+        from: edge.from,
+        to: edge.to,
+        label: edgeDisplayLabel(edge),
+        title: edgeTitle(edge),
+        ...edgeStyle(edge, index, lane),
+      };
+    }),
+  );
 
-  const labelsLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  labelsLayer.setAttribute("class", "graph-labels");
+  const network = new Network(canvas, { nodes, edges }, networkOptions());
+  network.on("click", (params) => {
+    if (params.nodes.length === 1) onSelectScreen?.(params.nodes[0]);
+  });
 
-  for (const edge of graph.edges) {
-    const from = positions.get(edge.from);
-    const to = positions.get(edge.to);
-    if (!from || !to) continue;
-
-    const group = edgeGroups.get(edgeKey(edge)) ?? [edge];
-    const laneIndex = group.indexOf(edge);
-    const laneCount = group.length;
-    const lane = laneIndex - (laneCount - 1) / 2;
-    const self = edge.from === edge.to;
-
-    const geom = edgeGeometry(from, to, lane, self);
-
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", geom.d);
-    path.setAttribute("class", `graph-edge graph-edge-${edge.kind}`);
-    path.setAttribute("marker-end", edge.kind === "on" ? "url(#arrow-on)" : "url(#arrow)");
-    path.setAttribute("title", edgeTitle(edge));
-    svg.appendChild(path);
-
-    appendEdgeLabel(labelsLayer, geom.labelX, geom.labelY, edgeDisplayLabel(edge), edge.kind);
-  }
-
-  svg.appendChild(labelsLayer);
-
-  for (const node of graph.nodes) {
-    const pos = positions.get(node.id);
-    if (!pos) continue;
-
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.setAttribute("class", "graph-node");
-    g.dataset.screenId = node.id;
-
-    if (node.id === activeScreenId || node.id === overlayScreenId) g.classList.add("active");
-    if (node.overlay) g.classList.add("overlay");
-
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", pos.x - NODE_W / 2);
-    rect.setAttribute("y", pos.y - NODE_H / 2);
-    rect.setAttribute("width", NODE_W);
-    rect.setAttribute("height", NODE_H);
-    rect.setAttribute("rx", "6");
-    g.appendChild(rect);
-
-    const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    title.setAttribute("x", pos.x);
-    title.setAttribute("y", pos.y + 1);
-    title.setAttribute("class", "graph-node-title");
-    title.textContent = node.label;
-    g.appendChild(title);
-
-    if (node.overlay) {
-      const badge = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      badge.setAttribute("x", pos.x + NODE_W / 2 - 6);
-      badge.setAttribute("y", pos.y - NODE_H / 2 + 9);
-      badge.setAttribute("class", "graph-node-badge");
-      badge.textContent = "O";
-      g.appendChild(badge);
-    }
-
-    g.addEventListener("click", () => onSelectScreen?.(node.id));
-    svg.appendChild(g);
-  }
-
-  const bounds = graphBounds(positions, labelsLayer);
-  svg.setAttribute("viewBox", `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`);
+  wrap.destroyGraph = () => network.destroy();
 
   const legend = document.createElement("div");
   legend.className = "graph-legend";
   legend.innerHTML = `
     <span><i class="swatch go"></i> go when …</span>
     <span><i class="swatch on"></i> on block …</span>
-    <span class="muted">Click node → sketch</span>`;
+    <span class="muted">Click node → sketch · scroll to zoom</span>`;
   wrap.appendChild(legend);
 
   return wrap;
 }
 
-function layoutNodes(nodes) {
-  const map = new Map();
-  const base = nodes.filter((n) => !n.overlay);
-  const overlays = nodes.filter((n) => n.overlay);
-
-  const cx = 180;
-  base.forEach((n, i) => {
-    map.set(n.id, { x: cx + i * 140, y: 170, w: NODE_W, h: NODE_H });
-  });
-
-  overlays.forEach((n, i) => {
-    const anchor = base[i] ?? base[0];
-    map.set(n.id, {
-      x: anchor?.x ?? cx,
-      y: 72,
-      w: NODE_W,
-      h: NODE_H,
-    });
-  });
-
-  return map;
+function networkOptions() {
+  return {
+    autoResize: true,
+    layout: {
+      hierarchical: {
+        enabled: true,
+        direction: "UD",
+        sortMethod: "directed",
+        levelSeparation: 96,
+        nodeSpacing: 150,
+        treeSpacing: 180,
+        blockShifting: true,
+        edgeMinimization: true,
+        parentCentralization: true,
+      },
+    },
+    physics: { enabled: false },
+    nodes: {
+      shape: "box",
+      margin: 6,
+      font: {
+        size: 11,
+        color: "#e8eaed",
+        face: "Segoe UI, system-ui, sans-serif",
+      },
+      borderWidth: 1.5,
+      widthConstraint: { maximum: 120, minimum: 52 },
+      shapeProperties: { borderRadius: 5 },
+    },
+    edges: {
+      width: 1.5,
+      font: {
+        size: 10,
+        color: "#c5cdd8",
+        strokeWidth: 4,
+        strokeColor: "#1a1d23",
+        align: "horizontal",
+      },
+      arrows: { to: { enabled: true, scaleFactor: 0.6 } },
+    },
+    interaction: {
+      hover: true,
+      zoomView: true,
+      dragView: true,
+      tooltipDelay: 120,
+    },
+  };
 }
 
-function edgeKey(edge) {
-  return `${edge.from}\0${edge.to}\0${edge.kind}`;
+function nodeStyle(node, activeScreenId, overlayScreenId) {
+  const active = node.id === activeScreenId || node.id === overlayScreenId;
+  const style = {
+    color: {
+      background: active ? "#2a3544" : "#252932",
+      border: active ? "#5b9bd5" : "#3d4450",
+      highlight: { background: "#2a3544", border: "#5b9bd5" },
+      hover: { background: "#2f3848", border: "#5b9bd5" },
+    },
+  };
+
+  if (node.overlay) {
+    style.shapeProperties = { borderDashes: [5, 4], borderRadius: 5 };
+  }
+
+  return style;
 }
 
-function groupEdges(edges) {
+function edgeStyle(edge, index, roundness) {
+  const isOn = edge.kind === "on";
+  const curve = index % 2 === 0 ? "curvedCW" : "curvedCCW";
+
+  return {
+    color: {
+      color: isOn ? "#a78bfa" : "#7aa2d6",
+      highlight: isOn ? "#c4b5fd" : "#9ec5ef",
+      hover: isOn ? "#c4b5fd" : "#9ec5ef",
+    },
+    dashes: isOn ? [6, 4] : false,
+    smooth: edge.from === edge.to
+      ? { enabled: true, type: "curvedCW", roundness: 0.35 }
+      : { enabled: true, type: curve, roundness },
+  };
+}
+
+function parallelKey(edge) {
+  if (edge.from === edge.to) return `self:${edge.from}:${edge.kind}:${edge.id}`;
+  return `${edge.from}:${edge.to}:${edge.kind}`;
+}
+
+function bucketParallelEdges(edges) {
   const map = new Map();
   for (const edge of edges) {
-    const key = edgeKey(edge);
+    const key = parallelKey(edge);
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(edge);
   }
-  return map;
-}
-
-function edgeGeometry(from, to, lane, self) {
-  if (self) {
-    const side = lane >= 0 ? 1 : -1;
-    const r = 28 + Math.abs(lane) * 12;
-    const x0 = from.x + side * (NODE_W / 2 - 6);
-    const y0 = from.y;
-    const d = `M ${x0} ${y0 - 2}
-      C ${x0 + side * r} ${y0 - r - 8}, ${x0 + side * r} ${y0 + r + 8}, ${x0} ${y0 + 2}`;
-    return {
-      d,
-      labelX: x0 + side * (r + 18),
-      labelY: y0 - 4,
-    };
+  for (const group of map.values()) {
+    group.sort((a, b) => edgeDisplayLabel(a).localeCompare(edgeDisplayLabel(b)));
   }
-
-  const up = to.y < from.y;
-  const x1 = from.x + lane * LANE;
-  const x2 = to.x + lane * LANE;
-  const y1 = from.y - NODE_H / 2 - 4;
-  const y2 = to.y + NODE_H / 2 + 4;
-  const y1Out = up ? y1 : from.y + NODE_H / 2 + 4;
-  const y2In = up ? y2 : to.y - NODE_H / 2 - 4;
-  const midY = (y1Out + y2In) / 2;
-
-  const d = `M ${x1} ${y1Out} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2In}`;
-  return {
-    d,
-    labelX: (x1 + x2) / 2 + lane * 8,
-    labelY: midY - 6 + lane * 2,
-  };
+  return map;
 }
 
 function edgeDisplayLabel(edge) {
@@ -185,59 +166,7 @@ function edgeDisplayLabel(edge) {
 }
 
 function edgeTitle(edge) {
-  if (edge.then) return `${edge.label}\n→ ${edge.then}`;
-  return edge.label;
-}
-
-function appendEdgeLabel(parent, x, y, text, kind) {
-  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  g.setAttribute("class", "graph-edge-label-wrap");
-
-  const estW = Math.min(120, Math.max(36, text.length * 5.2));
-  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  rect.setAttribute("x", x - estW / 2 - 4);
-  rect.setAttribute("y", y - 9);
-  rect.setAttribute("width", estW + 8);
-  rect.setAttribute("height", 14);
-  rect.setAttribute("rx", "3");
-  rect.setAttribute("class", `graph-edge-label-bg graph-edge-label-bg-${kind}`);
-  g.appendChild(rect);
-
-  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  label.setAttribute("x", x);
-  label.setAttribute("y", y);
-  label.setAttribute("class", "graph-edge-label");
-  label.textContent = text;
-  g.appendChild(label);
-
-  parent.appendChild(g);
-}
-
-function graphBounds(positions, labelsLayer) {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-
-  for (const p of positions.values()) {
-    minX = Math.min(minX, p.x - NODE_W);
-    minY = Math.min(minY, p.y - NODE_H);
-    maxX = Math.max(maxX, p.x + NODE_W);
-    maxY = Math.max(maxY, p.y + NODE_H);
-  }
-
-  for (const rect of labelsLayer.querySelectorAll("rect")) {
-    minX = Math.min(minX, Number(rect.getAttribute("x")));
-    minY = Math.min(minY, Number(rect.getAttribute("y")));
-    maxX = Math.max(maxX, Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")));
-    maxY = Math.max(maxY, Number(rect.getAttribute("y")) + Number(rect.getAttribute("height")));
-  }
-
-  const pad = 24;
-  return {
-    x: minX - pad,
-    y: minY - pad,
-    w: maxX - minX + pad * 2,
-    h: maxY - minY + pad * 2,
-  };
+  const when = edgeDisplayLabel(edge);
+  if (edge.then) return `${when}\n→ ${edge.then}`;
+  return when;
 }

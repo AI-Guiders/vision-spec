@@ -66,6 +66,7 @@ function loadText(source) {
 }
 
 function render() {
+  stage.firstChild?.destroyGraph?.();
   stage.innerHTML = "";
   overlayRoot.innerHTML = "";
   overlayRoot.classList.add("hidden");

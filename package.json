@@ -8,5 +8,9 @@
     "test": "node --test parser/parser.test.js parser/graph.test.js",
     "play": "npx --yes serve . -p 5199"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "vis-data": "^8.0.5",
+    "vis-network": "^10.1.2"
+  }
 }
