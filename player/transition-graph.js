@@ -1,7 +1,11 @@
 import { buildTransitionGraph } from "../parser/vision-graph.js";
 
+const NODE_W = 96;
+const NODE_H = 32;
+const LANE = 26;
+
 /**
- * Simple Voyager-style screen graph (SVG, no deps).
+ * Voyager-style screen graph — compact nodes, fanned edges, readable labels.
  */
 export function renderTransitionGraph(doc, { activeScreenId, overlayScreenId, onSelectScreen }) {
   const graph = buildTransitionGraph(doc);
@@ -13,37 +17,45 @@ export function renderTransitionGraph(doc, { activeScreenId, overlayScreenId, on
   wrap.appendChild(svg);
 
   const positions = layoutNodes(graph.nodes);
+  const edgeGroups = groupEdges(graph.edges);
+
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
   defs.innerHTML = `
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 z" fill="#7aa2d6"/>
+    <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#7aa2d6"/>
     </marker>
-    <marker id="arrow-on" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0,0 L8,4 L0,8 z" fill="#a78bfa"/>
+    <marker id="arrow-on" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#a78bfa"/>
     </marker>`;
   svg.appendChild(defs);
+
+  const labelsLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  labelsLayer.setAttribute("class", "graph-labels");
 
   for (const edge of graph.edges) {
     const from = positions.get(edge.from);
     const to = positions.get(edge.to);
     if (!from || !to) continue;
 
+    const group = edgeGroups.get(edgeKey(edge)) ?? [edge];
+    const laneIndex = group.indexOf(edge);
+    const laneCount = group.length;
+    const lane = laneIndex - (laneCount - 1) / 2;
+    const self = edge.from === edge.to;
+
+    const geom = edgeGeometry(from, to, lane, self);
+
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    const d = edgePath(from, to, edge.from === edge.to);
-    path.setAttribute("d", d);
+    path.setAttribute("d", geom.d);
     path.setAttribute("class", `graph-edge graph-edge-${edge.kind}`);
     path.setAttribute("marker-end", edge.kind === "on" ? "url(#arrow-on)" : "url(#arrow)");
-    path.setAttribute("title", edge.then ? `${edge.label}\n→ ${edge.then}` : edge.label);
+    path.setAttribute("title", edgeTitle(edge));
     svg.appendChild(path);
 
-    const mid = edgeMid(from, to, edge.from === edge.to);
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", mid.x);
-    label.setAttribute("y", mid.y);
-    label.setAttribute("class", "graph-edge-label");
-    label.textContent = edge.label;
-    svg.appendChild(label);
+    appendEdgeLabel(labelsLayer, geom.labelX, geom.labelY, edgeDisplayLabel(edge), edge.kind);
   }
+
+  svg.appendChild(labelsLayer);
 
   for (const node of graph.nodes) {
     const pos = positions.get(node.id);
@@ -53,41 +65,38 @@ export function renderTransitionGraph(doc, { activeScreenId, overlayScreenId, on
     g.setAttribute("class", "graph-node");
     g.dataset.screenId = node.id;
 
-    const active =
-      node.id === activeScreenId ||
-      node.id === overlayScreenId ||
-      (node.id === overlayScreenId && overlayScreenId);
-    if (active) g.classList.add("active");
+    if (node.id === activeScreenId || node.id === overlayScreenId) g.classList.add("active");
     if (node.overlay) g.classList.add("overlay");
 
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("x", pos.x - pos.w / 2);
-    rect.setAttribute("y", pos.y - pos.h / 2);
-    rect.setAttribute("width", pos.w);
-    rect.setAttribute("height", pos.h);
-    rect.setAttribute("rx", "10");
-    svg.appendChild(g);
+    rect.setAttribute("x", pos.x - NODE_W / 2);
+    rect.setAttribute("y", pos.y - NODE_H / 2);
+    rect.setAttribute("width", NODE_W);
+    rect.setAttribute("height", NODE_H);
+    rect.setAttribute("rx", "6");
     g.appendChild(rect);
 
     const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
     title.setAttribute("x", pos.x);
-    title.setAttribute("y", pos.y - 4);
+    title.setAttribute("y", pos.y + 1);
     title.setAttribute("class", "graph-node-title");
     title.textContent = node.label;
     g.appendChild(title);
 
-    const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    sub.setAttribute("x", pos.x);
-    sub.setAttribute("y", pos.y + 14);
-    sub.setAttribute("class", "graph-node-sub");
-    sub.textContent = node.overlay ? "overlay" : "screen";
-    g.appendChild(sub);
+    if (node.overlay) {
+      const badge = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      badge.setAttribute("x", pos.x + NODE_W / 2 - 6);
+      badge.setAttribute("y", pos.y - NODE_H / 2 + 9);
+      badge.setAttribute("class", "graph-node-badge");
+      badge.textContent = "O";
+      g.appendChild(badge);
+    }
 
     g.addEventListener("click", () => onSelectScreen?.(node.id));
     svg.appendChild(g);
   }
 
-  const bounds = graphBounds(positions);
+  const bounds = graphBounds(positions, labelsLayer);
   svg.setAttribute("viewBox", `${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`);
 
   const legend = document.createElement("div");
@@ -95,7 +104,7 @@ export function renderTransitionGraph(doc, { activeScreenId, overlayScreenId, on
   legend.innerHTML = `
     <span><i class="swatch go"></i> go when …</span>
     <span><i class="swatch on"></i> on block …</span>
-    <span class="muted">Click node → jump to screen in sketch mode</span>`;
+    <span class="muted">Click node → sketch</span>`;
   wrap.appendChild(legend);
 
   return wrap;
@@ -106,40 +115,129 @@ function layoutNodes(nodes) {
   const base = nodes.filter((n) => !n.overlay);
   const overlays = nodes.filter((n) => n.overlay);
 
+  const cx = 180;
   base.forEach((n, i) => {
-    map.set(n.id, { x: 160 + i * 220, y: 200, w: 150, h: 72 });
+    map.set(n.id, { x: cx + i * 140, y: 170, w: NODE_W, h: NODE_H });
   });
 
   overlays.forEach((n, i) => {
-    map.set(n.id, { x: 160 + i * 220, y: 70, w: 150, h: 72 });
+    const anchor = base[i] ?? base[0];
+    map.set(n.id, {
+      x: anchor?.x ?? cx,
+      y: 72,
+      w: NODE_W,
+      h: NODE_H,
+    });
   });
 
   return map;
 }
 
-function edgePath(from, to, self) {
+function edgeKey(edge) {
+  return `${edge.from}\0${edge.to}\0${edge.kind}`;
+}
+
+function groupEdges(edges) {
+  const map = new Map();
+  for (const edge of edges) {
+    const key = edgeKey(edge);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(edge);
+  }
+  return map;
+}
+
+function edgeGeometry(from, to, lane, self) {
   if (self) {
-    return `M ${from.x + 40} ${from.y - from.h / 2}
-            C ${from.x + 90} ${from.y - 90}, ${from.x - 90} ${from.y - 90}, ${from.x - 40} ${from.y - from.h / 2}`;
+    const side = lane >= 0 ? 1 : -1;
+    const r = 28 + Math.abs(lane) * 12;
+    const x0 = from.x + side * (NODE_W / 2 - 6);
+    const y0 = from.y;
+    const d = `M ${x0} ${y0 - 2}
+      C ${x0 + side * r} ${y0 - r - 8}, ${x0 + side * r} ${y0 + r + 8}, ${x0} ${y0 + 2}`;
+    return {
+      d,
+      labelX: x0 + side * (r + 18),
+      labelY: y0 - 4,
+    };
   }
-  const y1 = from.y - (from.y > to.y ? 20 : -20);
-  const y2 = to.y + (from.y > to.y ? to.h / 2 + 8 : -to.h / 2 - 8);
-  return `M ${from.x} ${y1} C ${from.x} ${(y1 + y2) / 2}, ${to.x} ${(y1 + y2) / 2}, ${to.x} ${y2}`;
+
+  const up = to.y < from.y;
+  const x1 = from.x + lane * LANE;
+  const x2 = to.x + lane * LANE;
+  const y1 = from.y - NODE_H / 2 - 4;
+  const y2 = to.y + NODE_H / 2 + 4;
+  const y1Out = up ? y1 : from.y + NODE_H / 2 + 4;
+  const y2In = up ? y2 : to.y - NODE_H / 2 - 4;
+  const midY = (y1Out + y2In) / 2;
+
+  const d = `M ${x1} ${y1Out} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2In}`;
+  return {
+    d,
+    labelX: (x1 + x2) / 2 + lane * 8,
+    labelY: midY - 6 + lane * 2,
+  };
 }
 
-function edgeMid(from, to, self) {
-  if (self) return { x: from.x, y: from.y - 70 };
-  return { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - 10 };
+function edgeDisplayLabel(edge) {
+  if (edge.kind === "go") return edge.label;
+  return `${edge.block} · ${edge.event}`;
 }
 
-function graphBounds(positions) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+function edgeTitle(edge) {
+  if (edge.then) return `${edge.label}\n→ ${edge.then}`;
+  return edge.label;
+}
+
+function appendEdgeLabel(parent, x, y, text, kind) {
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("class", "graph-edge-label-wrap");
+
+  const estW = Math.min(120, Math.max(36, text.length * 5.2));
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("x", x - estW / 2 - 4);
+  rect.setAttribute("y", y - 9);
+  rect.setAttribute("width", estW + 8);
+  rect.setAttribute("height", 14);
+  rect.setAttribute("rx", "3");
+  rect.setAttribute("class", `graph-edge-label-bg graph-edge-label-bg-${kind}`);
+  g.appendChild(rect);
+
+  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  label.setAttribute("x", x);
+  label.setAttribute("y", y);
+  label.setAttribute("class", "graph-edge-label");
+  label.textContent = text;
+  g.appendChild(label);
+
+  parent.appendChild(g);
+}
+
+function graphBounds(positions, labelsLayer) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
   for (const p of positions.values()) {
-    minX = Math.min(minX, p.x - p.w);
-    minY = Math.min(minY, p.y - p.h);
-    maxX = Math.max(maxX, p.x + p.w);
-    maxY = Math.max(maxY, p.y + p.h);
+    minX = Math.min(minX, p.x - NODE_W);
+    minY = Math.min(minY, p.y - NODE_H);
+    maxX = Math.max(maxX, p.x + NODE_W);
+    maxY = Math.max(maxY, p.y + NODE_H);
   }
-  const pad = 40;
-  return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+
+  for (const rect of labelsLayer.querySelectorAll("rect")) {
+    minX = Math.min(minX, Number(rect.getAttribute("x")));
+    minY = Math.min(minY, Number(rect.getAttribute("y")));
+    maxX = Math.max(maxX, Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")));
+    maxY = Math.max(maxY, Number(rect.getAttribute("y")) + Number(rect.getAttribute("height")));
+  }
+
+  const pad = 24;
+  return {
+    x: minX - pad,
+    y: minY - pad,
+    w: maxX - minX + pad * 2,
+    h: maxY - minY + pad * 2,
+  };
 }
