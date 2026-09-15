@@ -1,0 +1,13 @@
+vision minimal-demo
+  title "Two-screen flow"
+
+screen home
+  panel welcome
+
+screen settings overlay
+  panel options
+
+go home -> settings when Ctrl+K
+go settings -> home when Escape
+
+end

@@ -1,0 +1,12 @@
+{
+  "name": "vision-spec",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-native vision alignment — text screens, sketch web player",
+  "scripts": {
+    "test": "node --test parser/parser.test.js",
+    "play": "npx --yes serve . -p 5199"
+  },
+  "license": "MIT"
+}

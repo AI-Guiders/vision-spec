@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VisionSpec Player</title>
+  <link rel="stylesheet" href="./sketch.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">
+      <strong>VisionSpec</strong>
+      <span id="vision-title" class="muted">sketch player v0</span>
+    </div>
+    <div class="toolbar-actions">
+      <select id="example-select" aria-label="Example">
+        <option value="../examples/dashspec-studio.vision">dashspec-studio</option>
+        <option value="../examples/minimal.vision">minimal</option>
+      </select>
+      <label class="file-btn">
+        Open .vision
+        <input type="file" id="file-input" accept=".vision,.txt,text/plain" hidden />
+      </label>
+    </div>
+  </header>
+
+  <main id="stage" class="stage" tabindex="0" aria-label="Sketch stage"></main>
+  <div id="overlay-root" class="overlay-root hidden" aria-hidden="true"></div>
+
+  <footer class="log">
+    <div class="log-label">Transition log</div>
+    <ul id="log-list"></ul>
+  </footer>
+
+  <script type="module" src="./runtime.js"></script>
+</body>
+</html>

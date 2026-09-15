@@ -1,0 +1,41 @@
+# DashSpec Studio — vision alignment (v0)
+# Review: click tree, Ctrl+K palette, pick command, Esc back.
+
+vision dashspec-studio
+  title "DashSpec Studio — report author"
+
+screen studio
+  row [ project-tree | editor | preview ]
+  panel resolve
+  tree project-tree
+  tabs editor
+  preview report-preview
+
+screen command-palette overlay
+  search
+  command-list
+
+go studio -> command-palette when Ctrl+K
+go command-palette -> studio when Escape
+go command-palette -> studio when select-command
+  then focus editor open selected file
+
+on project-tree double-click file -> studio
+  then open tab and show resolve
+
+fixture project-tree
+  demo-soak.dashspec
+  demo-analytics.dashspec
+  demo-catalog.dashcatalog
+  diagrams/peak-kpi.dashdiagram
+  diagrams/dau-bar.dashdiagram
+  sql/idle-vs-peak-scatter.sql
+
+fixture command-list
+  Save active document
+  Open demo_soak
+  Open demo_analytics
+  Focus preview
+  Reload resolve
+
+end
