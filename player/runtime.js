@@ -1,7 +1,7 @@
 import { parseVision, entryScreen } from "../parser/vision-parser.js";
 import { isLayoutBoundBlock } from "../parser/vision-graph.js";
+import { resolvePlugins } from "../parser/plugins.js";
 import { renderTransitionGraph } from "./transition-graph.js";
-
 const stage = document.getElementById("stage");
 const overlayRoot = document.getElementById("overlay-root");
 const logList = document.getElementById("log-list");
@@ -117,11 +117,26 @@ function renderScreen(screen, isOverlay) {
   root.className = "screen";
   root.dataset.screenId = screen.id;
 
-  for (const block of screen.blocks) {
-    if (isLayoutBoundBlock(block, screen)) continue;
-    root.appendChild(renderBlock(block, screen));
+  if (!isOverlay && screen.deck) {
+    for (const plugin of resolvePlugins(doc)) {
+      const deckRoot = plugin.renderScreen?.(screen, {
+        renderZone: (zoneId) => {
+          const block = findBlock(screen, zoneId);
+          return block ? renderBlock(block, screen) : null;
+        },
+        labelForZone: zoneLabel,
+      });
+      if (deckRoot) {
+        root.appendChild(deckRoot);
+        return root;
+      }
+    }
   }
 
+  for (const block of screen.blocks) {
+    if (isLayoutBoundBlock(block, screen, doc)) continue;
+    root.appendChild(renderBlock(block, screen));
+  }
   if (isOverlay) {
     const card = root.querySelector(".sketch-block") ?? root;
     if (card.classList) card.classList.add("overlay-card");
@@ -183,6 +198,9 @@ function renderBlock(block, screen) {
         ? "Resolve OK — federation graph (fixture)"
         : `${block.id} panel`;
       break;
+    case "repl":
+      renderRepl(body, block.id);
+      break;
     default:
       body.textContent = block.kind;
   }
@@ -192,10 +210,34 @@ function renderBlock(block, screen) {
 
 function findBlock(screen, id) {
   return screen.blocks.find(
-    (b) => b.id === id && ["tree", "tabs", "preview", "panel"].includes(b.kind),
+    (b) => b.id === id && ["tree", "tabs", "preview", "panel", "repl"].includes(b.kind),
   );
 }
 
+function zoneLabel(zoneId) {
+  const labels = {
+    "spec-tree": "Project Browser",
+    editor: "Document editor",
+    "report-preview": "Report preview",
+    "data-lab": "SQL Browser",
+    resolve: "Resolve / EICAS",
+  };
+  return labels[zoneId] ?? zoneId;
+}
+
+function renderRepl(container, fixtureId) {
+  const lines = fixture(fixtureId);
+  if (!lines.length) {
+    container.textContent = "REPL · schema · grid";
+    return;
+  }
+  for (const line of lines) {
+    const div = document.createElement("div");
+    div.className = "repl-line";
+    div.textContent = line;
+    container.appendChild(div);
+  }
+}
 function placeholder(id) {
   const d = document.createElement("div");
   d.className = "sketch-block";

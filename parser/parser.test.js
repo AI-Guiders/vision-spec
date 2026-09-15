@@ -16,7 +16,9 @@ test("parse dashspec-studio example", () => {
   assert.equal(doc.id, "dashspec-studio");
   assert.equal(doc.screens.length, 2);
   assert.equal(doc.screens[1].overlay, true);
-  assert.ok(doc.fixtures["project-tree"].length >= 3);
+  assert.ok(doc.plugins.includes("aiguiders-mental-model"));
+  assert.equal(doc.screens[0].deck?.preset, "report-author");
+  assert.ok(doc.fixtures["spec-tree"].length >= 3);
   assert.ok(doc.transitions.some((t) => t.when === "Ctrl+K"));
 });
 

@@ -171,6 +171,123 @@ select, .file-btn {
 
 .panel-resolve { max-height: 120px; flex: 0; min-height: 80px; }
 
+/* Federation deck layout (aiguiders-mental-model plugin) */
+.deck-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+  min-height: 380px;
+}
+
+.deck-chrome {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 2px 4px;
+}
+
+.deck-band-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 2px 6px;
+}
+
+.deck-forward {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 72px;
+  max-height: 22%;
+}
+
+.deck-forward-body {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  min-height: 56px;
+}
+
+.deck-mfd {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+.deck-mfd-row {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  min-height: 180px;
+}
+
+.deck-mfd-main {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.deck-eicas {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 72px;
+  max-height: 18%;
+}
+
+.deck-zone {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 2px dashed var(--sketch-dash);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.deck-zone.forward { flex: 1; }
+.deck-zone.mfd { flex: 0 0 220px; max-width: 28%; }
+.deck-zone.mfd-wide { flex: 1 1 auto; min-width: 0; }
+.deck-zone.mfd-split { flex: 0 0 240px; max-width: 32%; }
+.deck-zone.eicas { flex: 1; min-height: 56px; }
+
+.deck-zone-cap {
+  font-size: 0.7rem;
+  color: var(--accent);
+  padding: 4px 8px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.deck-zone-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.deck-zone-body .sketch-block {
+  border: none;
+  border-radius: 0;
+  height: 100%;
+}
+
+.deck-zone-body .block-title { display: none; }
+
+.repl-line {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  padding: 3px 0;
+  color: var(--muted);
+}
+
 .log {
   border-top: 1px solid var(--border);
   padding: 8px 16px 12px;

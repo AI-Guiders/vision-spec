@@ -1,15 +1,24 @@
-# DashSpec Studio — vision alignment (v0)
-# Review: click tree, Ctrl+K palette, pick command, Esc back.
+# DashSpec Studio — vision alignment
+# Topology: STUDIO-ADR-0002 report-author · GUIDERS-ADR-0007/0058 (mental-model plugin)
+
+use aiguiders-mental-model
 
 vision dashspec-studio
   title "DashSpec Studio — report author"
 
 screen studio
-  row [ project-tree | editor | report-preview ]
-  panel resolve
-  tree project-tree
+  preset report-author
+  topology (MFD)(F)
+  forward report-preview
+  mfd spec-tree | editor
+  split data-lab
+  eicas resolve
+
+  tree spec-tree
   tabs editor
   preview report-preview
+  repl data-lab
+  panel resolve
 
 screen command-palette overlay
   search
@@ -20,10 +29,10 @@ go command-palette -> studio when Escape
 go command-palette -> studio when select-command
   then focus editor open selected file
 
-on project-tree double-click file -> editor
+on spec-tree double-click file -> editor
   then open tab and show resolve
 
-fixture project-tree
+fixture spec-tree
   demo-soak.dashspec
   demo-analytics.dashspec
   demo-catalog.dashcatalog
@@ -37,5 +46,10 @@ fixture command-list
   Open demo_analytics
   Focus preview
   Reload resolve
+
+fixture data-lab
+  connector: demo-db · OK
+  schema: reports / cards / binds
+  repl: SELECT federation_status()
 
 end

@@ -16,13 +16,23 @@ test("layout-bound blocks are not duplicated at screen root", () => {
   const doc = parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
   assert.ok(studio);
-  assert.equal(isLayoutBoundBlock(studio.blocks.find((b) => b.kind === "tree"), studio), true);
-  assert.equal(isLayoutBoundBlock(studio.blocks.find((b) => b.id === "resolve"), studio), false);
+  assert.equal(
+    isLayoutBoundBlock(studio.blocks.find((b) => b.kind === "tree"), studio, doc),
+    true,
+  );
+  assert.equal(
+    isLayoutBoundBlock(studio.blocks.find((b) => b.id === "resolve"), studio, doc),
+    true,
+  );
+  assert.equal(
+    isLayoutBoundBlock(studio.blocks.find((b) => b.id === "editor"), studio, doc),
+    true,
+  );
 });
 
 test("on handler resolves block target inside screen", () => {
   const doc = parseVision(example);
-  const h = doc.handlers.find((x) => x.block === "project-tree");
+  const h = doc.handlers.find((x) => x.block === "spec-tree");
   assert.ok(h);
   assert.equal(h.toBlock, "editor");
   assert.equal(h.toScreen, "studio");
@@ -36,9 +46,10 @@ test("transition graph links blocks for on handlers", () => {
     graph.edges.some(
       (e) =>
         e.kind === "on" &&
-        e.from === blockNodeId("project-tree") &&
+        e.from === blockNodeId("spec-tree") &&
         e.to === blockNodeId("editor"),
     ),
   );
-  assert.ok(graph.nodes.some((n) => n.kind === "block" && n.blockId === "project-tree"));
+  assert.ok(graph.nodes.some((n) => n.kind === "block" && n.blockId === "spec-tree"));
+  assert.ok(graph.nodes.some((n) => n.kind === "screen" && n.label.includes("report-author")));
 });

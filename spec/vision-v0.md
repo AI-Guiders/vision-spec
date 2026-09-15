@@ -7,9 +7,11 @@ Line-oriented, indentation-insensitive. `#` starts a comment. Blank lines ignore
 ```text
 vision <id>
   [title "<human title>"]
+  [use <plugin-id> ...]
 
 screen <id> [overlay]
   <blocks...>
+  [<plugin deck lines — see Plugins>]
 
 fixture <block-id-or-role>
   <data lines>
@@ -17,7 +19,7 @@ fixture <block-id-or-role>
 go <from> -> <to> when <trigger>
   [then <note>]
 
-on <block> <event> [<target>] -> <screen>
+on <block> <event> [<target>] -> <screen|block>
   [then <note>]
 
 end
@@ -38,12 +40,37 @@ end
 | `tree <id>` | tree; uses `fixture <id>` if present |
 | `tabs <id>` | tab strip sketch |
 | `preview <id>` | preview placeholder |
+| `repl <id>` | data-lab / REPL sketch; uses `fixture <id>` if present |
 | `search` | search field sketch |
 | `command-list` | list; uses fixture named `command-list` or last fixture |
 
 Block ids in layouts reference nested `panel`/`tree`/etc. lines in the same screen.
 
-**Layout binding:** `tree` / `tabs` / `preview` / `panel` blocks whose `id` appears in a `row`/`col` slot render **only inside that slot**, not again at screen root (avoids duplication).
+**Layout binding:** `tree` / `tabs` / `preview` / `panel` / `repl` blocks whose `id` appears in a `row`/`col` slot **or** in a plugin deck zone render **only inside that slot**, not again at screen root (avoids duplication).
+
+## Plugins
+
+Core VisionSpec stays domain-agnostic. Federation / cockpit vocabulary lives in plugins.
+
+```text
+use aiguiders-mental-model
+
+screen studio
+  preset report-author
+  topology (MFD)(F)
+  forward report-preview
+  mfd spec-tree | editor
+  split data-lab
+  eicas resolve
+  tree spec-tree
+  ...
+```
+
+| Plugin | Role |
+|---|---|
+| `aiguiders-mental-model` | GUIDERS-ADR-0007/0058 deck topology (Forward / MFD / split / EICAS) |
+
+See `design/VISION-ADR-0002-plugin-model.md` for the contract (`parseScreenLine`, `deckZoneIds`, `renderScreen`).
 
 ## Fixtures
 
@@ -71,7 +98,7 @@ fixture project-tree
 Interaction on a **block** inside a screen. Target after `->` is either:
 
 - another **block id** in the same screen (focus / in-screen flow), e.g.  
-  `on project-tree double-click file -> editor`
+  `on spec-tree double-click file -> editor`
 - a **screen id** (leave screen), e.g. legacy cross-screen handlers
 
 Optional `then` describes side effects (open tab, show resolve, …).
