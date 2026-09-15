@@ -74,6 +74,9 @@ function render() {
 
   if (!doc) return;
 
+  stage.classList.toggle("stage-graph", viewMode === "graph");
+  stage.classList.toggle("stage-sketch", viewMode !== "graph");
+
   if (viewMode === "graph") {
     const graphWrap = renderTransitionGraph(doc, {
       activeScreenId: currentScreenId,

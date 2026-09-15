@@ -14,11 +14,13 @@
 
 body {
   margin: 0;
+  height: 100vh;
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--bg);
   color: var(--text);
+  overflow: hidden;
 }
 
 .toolbar {
@@ -48,7 +50,15 @@ select, .file-btn {
 .stage {
   padding: 12px;
   outline: none;
-  min-height: 420px;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.stage.stage-graph {
+  overflow: hidden;
 }
 
 .overlay-root {
@@ -322,16 +332,30 @@ select, .file-btn {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 420px;
-}
-
-.graph-canvas {
-  width: 100%;
-  height: 420px;
-  min-height: 420px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
   border: 1px dashed var(--border);
   border-radius: 10px;
   background: radial-gradient(circle at 30% 20%, #2a3140 0%, var(--bg) 55%);
+  padding: 8px;
+}
+
+.graph-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 240px;
+  height: auto;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.graph-canvas .vis-network,
+.graph-canvas .vis-network canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .graph-canvas-error {

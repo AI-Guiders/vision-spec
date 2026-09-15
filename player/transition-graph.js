@@ -63,10 +63,23 @@ export function renderTransitionGraph(doc, { activeScreenId, overlayScreenId, on
         if (screenId) onSelectScreen?.(screenId);
       });
 
-      requestAnimationFrame(() => network.fit({ animation: false, padding: 56 }));
+      const fitGraph = () => {
+        network.redraw();
+        network.fit({ animation: false, padding: 72 });
+      };
+
+      const resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(fitGraph);
+      });
+      resizeObserver.observe(canvas);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(fitGraph);
+      });
 
       wrap._network = network;
       wrap.destroyGraph = () => {
+        resizeObserver.disconnect();
         network.destroy();
         wrap._network = null;
       };
