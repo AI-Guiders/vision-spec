@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<doc>
-<assembly><name>AIGuiders.Platform.Modeling.Gdl.Expression</name></assembly>
-<members>
-<member name="T:AIGuiders.Platform.Modeling.Gdl.Expression.ExprNode">
- <summary>Neutral expression AST for guarded rules (.cockpit.logic, .deck when, catalog preconditions).</summary>
-</member>
-</members>
-</doc>

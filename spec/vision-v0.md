@@ -57,9 +57,9 @@ end
 
 Block ids in layouts reference nested `panel`/`tree`/etc. lines in the same screen.
 
-**Deck binding:** `use-deck <preset>` applies inline `deck` preset to `screen.deck` (mental-model plugin). Legacy per-line `preset` / `mfd` on screen still supported.
+**Catalog:** inline `catalog` section; parse via federation `CatalogParser` (VisionGdlBridge). `command-list` block uses `doc.catalog`.
 
-**Catalog:** inline `catalog` section supplies command palette rows (GDL tables). `command-list` block uses `doc.catalog` when present.
+**Deck:** inline `deck` section; parse via federation `DeckParser`. Vision-only `mfd-tabs` / `split` on screen lines.
 
 **Layout binding:** `tree` / `tabs` / `preview` / `panel` / `repl` blocks whose `id` appears in a `row`/`col` slot **or** in a plugin deck zone render **only inside that slot**, not again at screen root (avoids duplication).
 
