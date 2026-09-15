@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Agent-native vision alignment — text screens, sketch web player",
   "scripts": {
-    "test": "node --test parser/parser.test.js parser/graph.test.js parser/mental-model.test.js",
+    "test": "node --test parser/parser.test.js parser/graph.test.js parser/mental-model.test.js parser/gdl-inline.test.js",
     "play": "npx --yes serve . -p 5199"
   },
   "license": "MIT",

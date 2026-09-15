@@ -5,7 +5,7 @@ export const aiguidersMentalModel = {
   id: "aiguiders-mental-model",
 
   parseScreenLine(ctx, trimmed) {
-    return parseScreenLine(ctx.screen, trimmed);
+    return parseScreenLine(ctx.screen, trimmed, ctx.doc);
   },
 
   deckZoneIds(screen) {

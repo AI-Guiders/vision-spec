@@ -1,6 +1,9 @@
 /** Federation presentation topology lines → screen.deck IR (alignment only). */
 
+import { deckPresetToScreenDeck } from "../../parser/gdl-inline.js";
+
 const PRESET_LINE = /^preset\s+(\S+)\s*$/i;
+const USE_DECK_LINE = /^use-deck\s+(\S+)\s*$/i;
 const TOPOLOGY_LINE = /^topology\s+((?:\([^)]+\))+)\s*$/i;
 const FORWARD_LINE = /^forward\s+(.+)$/i;
 const MFD_LINE = /^mfd\s+(.+)$/i;
@@ -14,8 +17,19 @@ const REPORT_AUTHOR_TAB_ZONES = {
   Pad: "script-pad",
 };
 
-export function parseScreenLine(screen, trimmed) {
+export function parseScreenLine(screen, trimmed, doc = null) {
   let m;
+
+  if ((m = trimmed.match(USE_DECK_LINE))) {
+    const deck = deckPresetToScreenDeck(doc?.deck, m[1]);
+    if (deck) {
+      screen.deck = deck;
+      return true;
+    }
+    ensureDeck(screen);
+    screen.deck.preset = m[1];
+    return true;
+  }
 
   if ((m = trimmed.match(PRESET_LINE))) {
     ensureDeck(screen);

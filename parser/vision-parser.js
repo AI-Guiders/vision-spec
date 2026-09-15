@@ -4,8 +4,13 @@
 
 import { resolveOnTarget } from "./vision-graph.js";
 import { resolvePlugins } from "./plugins.js";
+import {
+  parseInlineCatalog,
+  parseInlineDeck,
+  readTopLevelBlock,
+} from "./gdl-inline.js";
 
-const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end|use)\b/i;
+const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end|use|catalog|deck)\b/i;
 const USE_LINE = /^use\s+(\S+)\s*$/i;
 const TITLE_LINE = /^title\s+"([^"]*)"/i;
 const LAYOUT_ROW = /^row\s+\[(.+)\]\s*$/i;
@@ -30,6 +35,8 @@ export function parseVision(source) {
     plugins: [],
     screens: [],
     fixtures: {},
+    catalog: null,
+    deck: null,
     transitions: [],
     handlers: [],
   };
@@ -59,6 +66,22 @@ export function parseVision(source) {
 
     if (/^vision\s+/i.test(trimmed)) {
       doc.id = trimmed.split(/\s+/)[1];
+      continue;
+    }
+
+    if (/^catalog\s+/i.test(trimmed) && !screen && !fixtureName) {
+      const id = trimmed.split(/\s+/)[1];
+      const block = readTopLevelBlock(lines, i, "catalog");
+      doc.catalog = parseInlineCatalog(block.body, id);
+      i = block.next;
+      continue;
+    }
+
+    if (/^deck\s+/i.test(trimmed) && !screen && !fixtureName) {
+      const id = trimmed.split(/\s+/)[1];
+      const block = readTopLevelBlock(lines, i, "deck");
+      doc.deck = parseInlineDeck(block.body, id);
+      i = block.next;
       continue;
     }
 

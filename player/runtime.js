@@ -1,4 +1,5 @@
 import { parseVision, entryScreen } from "../parser/vision-parser.js";
+import { paletteRowsFromCatalog } from "../parser/gdl-inline.js";
 import { isLayoutBoundBlock } from "../parser/vision-graph.js";
 import { resolvePlugins } from "../parser/plugins.js";
 import { renderTransitionGraph } from "./transition-graph.js";
@@ -425,8 +426,14 @@ function paletteFuzzyMatch(query, cmd) {
   return true;
 }
 
+function paletteCommands() {
+  const fromCatalog = paletteRowsFromCatalog(doc?.catalog);
+  if (fromCatalog.length) return fromCatalog;
+  return fixture("command-list").map(parseCommandFixtureLine);
+}
+
 function renderCommandPalette(container) {
-  const commands = fixture("command-list").map(parseCommandFixtureLine);
+  const commands = paletteCommands();
   let selected = 0;
 
   const search = document.createElement("input");

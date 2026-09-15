@@ -9,6 +9,16 @@ vision <id>
   [title "<human title>"]
   [use <plugin-id> ...]
 
+catalog <id>
+  [defaults / commands table / phrases table / bindings table …]
+end catalog
+
+deck <id>
+  preset <name>
+    [topology / forward / mfd / …]
+  end preset
+end deck
+
 screen <id> [overlay]
   <blocks...>
   [<plugin deck lines — see Plugins>]
@@ -46,6 +56,10 @@ end
 | `command-list` | list; uses fixture named `command-list` or last fixture |
 
 Block ids in layouts reference nested `panel`/`tree`/etc. lines in the same screen.
+
+**Deck binding:** `use-deck <preset>` applies inline `deck` preset to `screen.deck` (mental-model plugin). Legacy per-line `preset` / `mfd` on screen still supported.
+
+**Catalog:** inline `catalog` section supplies command palette rows (GDL tables). `command-list` block uses `doc.catalog` when present.
 
 **Layout binding:** `tree` / `tabs` / `preview` / `panel` / `repl` blocks whose `id` appears in a `row`/`col` slot **or** in a plugin deck zone render **only inside that slot**, not again at screen root (avoids duplication).
 
