@@ -43,38 +43,46 @@
   <script src="../node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
   
   <script>
-    window.__VISION_BOOT__ = (async function bootVisionPlayer() {
+    (function () {
       var titleEl = document.getElementById("vision-title");
       var stage = document.getElementById("stage");
-      try {
-        var resp = await fetch("/__vision/project", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: "examples/dashspec-studio.visionproj" }),
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        var doc = await resp.json();
-        window.__VISION_INITIAL_DOC__ = doc;
-        if (titleEl) titleEl.textContent = doc.title || doc.id;
-        return doc;
-      } catch (err) {
+      function showErr(msg) {
         if (titleEl) titleEl.textContent = "Load failed";
-        if (stage) {
-          stage.innerHTML = '<p class="load-error">' + String(err && err.message ? err.message : err) + "</p>";
+        if (stage) stage.innerHTML = '<p class="load-error">' + msg + "</p>";
+      }
+      if (window.__VISION_INITIAL_DOC__) {
+        var doc = window.__VISION_INITIAL_DOC__;
+        if (titleEl) titleEl.textContent = doc.title || doc.id;
+        window.__VISION_BOOT__ = Promise.resolve(doc);
+        return;
+      }
+      window.__VISION_BOOT__ = (async function () {
+        try {
+          var ctrl = new AbortController();
+          var timer = setTimeout(function () { ctrl.abort(); }, 15000);
+          var resp = await fetch("/__vision/project", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: "examples/dashspec-studio.visionproj" }),
+            signal: ctrl.signal,
+          });
+          clearTimeout(timer);
+          if (!resp.ok) throw new Error(await resp.text());
+          var doc = await resp.json();
+          window.__VISION_INITIAL_DOC__ = doc;
+          if (titleEl) titleEl.textContent = doc.title || doc.id;
+          return doc;
+        } catch (err) {
+          showErr(String(err && err.message ? err.message : err));
+          throw err;
         }
-        throw err;
-      }
+      })();
+      window.addEventListener("error", function (ev) {
+        if (window.__VISION_INITIAL_DOC__) return;
+        showErr("Player script error: " + String(ev.message || ev.error || "unknown"));
+      });
     })();
-    window.addEventListener("error", function (ev) {
-      var stage = document.getElementById("stage");
-      var titleEl = document.getElementById("vision-title");
-      if (window.__VISION_INITIAL_DOC__) return;
-      if (titleEl) titleEl.textContent = "Load failed";
-      if (stage && !stage.querySelector(".load-error")) {
-        stage.innerHTML = '<p class="load-error">Player script error: ' + String(ev.message || ev.error || "unknown") + "</p>";
-      }
-    });
   </script>
-  <script type="module" src="./runtime.js?v=boot1"></script>
+  <script type="module" src="./runtime.js?v=boot2"></script>
 </body>
 </html>

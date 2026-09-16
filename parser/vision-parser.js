@@ -90,7 +90,6 @@ export async function parseVision(source, options = {}) {
   return parseVisionLeaf(source, options);
 }
 
-export { composeVisionFile } from "./vision-compose.js";
 
 /**
  * @param {string} source

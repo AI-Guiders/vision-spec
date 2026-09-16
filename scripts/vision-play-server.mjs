@@ -7,6 +7,26 @@ import { composeVisionFile, composeVisionFromMap } from "../parser/vision-compos
 import { composeVisionProject, composeVisionProjectFromUpload } from '../parser/vision-project.js';
 
 const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
+
+/** @type {unknown | null} */
+let cachedBootDoc = null;
+
+async function injectPlayerBootDoc(html) {
+  const marker = "window.__VISION_INITIAL_DOC__";
+  if (html.includes(marker)) return html;
+  try {
+    if (!cachedBootDoc) {
+      cachedBootDoc = await composeVisionProject(
+        path.join(ROOT, "examples", "dashspec-studio.visionproj"),
+      );
+    }
+    const payload = JSON.stringify(cachedBootDoc).replace(/</g, "\\u003c");
+    const inject = `<script>window.__VISION_INITIAL_DOC__=${payload};</script>`;
+    return html.replace("</head>", inject + "\n</head>");
+  } catch {
+    return html;
+  }
+}
 const PORT = Number(process.env.PORT || 5199);
 
 const MIME = {
@@ -36,7 +56,10 @@ async function serveStatic(req, res) {
   try {
     const stat = await fs.stat(filePath);
     const target = stat.isDirectory() ? path.join(filePath, "index.html") : filePath;
-    const data = await fs.readFile(target);
+    let data = await fs.readFile(target);
+    if (target.endsWith(`${path.sep}player${path.sep}index.html`)) {
+      data = Buffer.from(await injectPlayerBootDoc(data.toString("utf8")), "utf8");
+    }
     const ext = path.extname(target).toLowerCase();
     res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
     res.end(data);
