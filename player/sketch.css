@@ -44,6 +44,13 @@ body {
 .brand { display: flex; gap: 10px; align-items: baseline; }
 .muted { color: var(--muted); font-size: 0.9rem; }
 
+.load-error {
+  color: #ff8a80;
+  padding: 24px;
+  max-width: 48rem;
+  line-height: 1.5;
+}
+
 .toolbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .project-hint {
@@ -55,7 +62,7 @@ body {
 
 .project-hint code { font-size: 0.9em; }
 
-select, .file-btn {
+select, .file-btn, button.file-btn {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);

@@ -22,7 +22,7 @@ const logList = document.getElementById("log-list");
 const titleEl = document.getElementById("vision-title");
 const exampleSelect = document.getElementById("example-select");
 const fileInput = document.getElementById("file-input");
-const projectManifestInput = document.getElementById("project-manifest-input");
+const projectOpenBtn = document.getElementById("project-open-btn");
 const projectDirInput = document.getElementById("project-dir-input");
 const projectHint = document.getElementById("project-hint");
 const viewModeSelect = document.getElementById("view-mode");
@@ -48,7 +48,7 @@ function showLoadError(err) {
 async function init() {
   exampleSelect.addEventListener("change", () => loadUrl(exampleSelect.value));
   fileInput.addEventListener("change", onFilePick);
-  projectManifestInput.addEventListener("change", onProjectManifestPick);
+  projectOpenBtn?.addEventListener("click", () => projectDirInput.click());
   projectDirInput.addEventListener("change", onProjectDirPick);
   viewModeSelect.addEventListener("change", () => {
     viewMode = viewModeSelect.value;
@@ -64,8 +64,15 @@ async function init() {
   }
 }
 
+function normalizeRepoPath(url) {
+  const raw = url.replace(/^\//, "").replace(/\\/g, "/");
+  const parts = raw.split("/").filter((p) => p && p !== ".");
+  while (parts[0] === "..") parts.shift();
+  return parts.join("/");
+}
+
 async function loadUrl(url) {
-  const rel = url.replace(/^\//, "");
+  const rel = normalizeRepoPath(url);
   if (rel.endsWith(".visionproj")) {
     const resp = await fetch("/__vision/project", {
       method: "POST",
@@ -111,22 +118,6 @@ function onFilePick(ev) {
   reader.readAsText(file);
 }
 
-/** @type {{ name: string, source: string } | null} */
-let pendingProjectManifest = null;
-
-async function onProjectManifestPick(ev) {
-  const file = ev.target.files?.[0];
-  ev.target.value = "";
-  if (!file) return;
-  pendingProjectManifest = { name: file.name, source: await file.text() };
-  titleEl.textContent = `Selected ${file.name} — pick the folder that contains it…`;
-  if (projectHint) {
-    projectHint.textContent =
-      "Step 2: in the folder dialog click Upload on the directory with your .visionproj (browser hides files — that is normal).";
-  }
-  projectDirInput.click();
-}
-
 function selectManifestPath(manifestPaths) {
   return [...manifestPaths].sort((a, b) => {
     const depthA = a.split("/").length;
@@ -152,13 +143,8 @@ async function onProjectDirPick(ev) {
       manifestTexts[rel] = await file.text();
     }
     if (!manifestPaths.length) {
-      if (pendingProjectManifest) {
-        throw new Error(
-          `Folder upload did not include ${pendingProjectManifest.name}. Click Upload on the directory that contains the .visionproj (not a subfolder).`,
-        );
-      }
       throw new Error(
-        "V-P003: No .visionproj in selection — pick .visionproj first, then Upload on the folder that contains it",
+        "V-P003: No .visionproj in selected folder — choose the directory that contains your .visionproj (e.g. examples/)",
       );
     }
     const manifestRel = selectManifestPath(manifestPaths);
@@ -185,11 +171,6 @@ async function onProjectDirPick(ev) {
     showLoadError(err);
   } finally {
     ev.target.value = "";
-    pendingProjectManifest = null;
-    if (projectHint) {
-      projectHint.innerHTML =
-        'Local project: pick <code>.visionproj</code>, then the folder with it. Built-in example: use dropdown above.';
-    }
   }
 }
 
@@ -226,7 +207,7 @@ async function loadText(source, fileName = "") {
       return;
     }
     throw new Error(
-      "This .vision file uses import directives. Use Open project: pick the .visionproj file, then Upload on the folder that contains it.",
+      "This .vision file uses import directives. Use Open project and select the folder containing a .visionproj manifest.",
     );
   }
   doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });
