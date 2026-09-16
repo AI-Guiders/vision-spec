@@ -58,7 +58,7 @@ end
 
 ## Composition (federation import)
 
-VisionSpec adopts **GUIDERS-ADR-0052** `import` for planet packs. Logical paths are relative to the **entry `.vision` file directory**.
+VisionSpec adopts **GUIDERS-ADR-0052** `import` for planet packs. Logical paths are relative to the **vision project root** declared in a `.visionproj` manifest (VISION-ADR-0006) or the entry file directory for single-file opens.
 
 | Form | Meaning |
 |---|---|
@@ -68,7 +68,7 @@ VisionSpec adopts **GUIDERS-ADR-0052** `import` for planet packs. Logical paths 
 
 Leaf files hold **screens**, `go`, `on`, and optional inline `catalog`/`deck`. Imported packs hold `components`, `presentation`, `fixture`, shared defaults — see `design/VISION-ADR-0005-federation-import-composition.md`.
 
-**Browser player:** single-file open parses inline content only. Files with `import` need **Open project folder** (uploads all `.vision` files; server composes via `POST /__vision/compose`).
+**Browser player:** single-file open parses inline content only. Files with `import` need **Open project** — select the directory containing a `.visionproj` manifest; server composes via `POST /__vision/project`. Examples load via `examples/dashspec-studio.visionproj`.
 
 ## Screens
 

@@ -22,7 +22,7 @@ const logList = document.getElementById("log-list");
 const titleEl = document.getElementById("vision-title");
 const exampleSelect = document.getElementById("example-select");
 const fileInput = document.getElementById("file-input");
-const folderInput = document.getElementById("folder-input");
+const projectInput = document.getElementById("project-input");
 const viewModeSelect = document.getElementById("view-mode");
 
 /** @type {ReturnType<parseVision> | null} */
@@ -46,7 +46,7 @@ function showLoadError(err) {
 async function init() {
   exampleSelect.addEventListener("change", () => loadUrl(exampleSelect.value));
   fileInput.addEventListener("change", onFilePick);
-  folderInput.addEventListener("change", onFolderPick);
+  projectInput.addEventListener("change", onProjectPick);
   viewModeSelect.addEventListener("change", () => {
     viewMode = viewModeSelect.value;
     render();
@@ -63,6 +63,16 @@ async function init() {
 
 async function loadUrl(url) {
   const rel = url.replace(/^\//, "");
+  if (rel.endsWith(".visionproj")) {
+    const resp = await fetch("/__vision/project", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: rel }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    finishLoad(await resp.json());
+    return;
+  }
   if (rel.endsWith(".vision")) {
     const resp = await fetch("/__vision/parse", {
       method: "POST",
@@ -98,12 +108,55 @@ function onFilePick(ev) {
   reader.readAsText(file);
 }
 
-async function onFolderPick(ev) {
+function selectManifestPath(manifestPaths) {
+  return [...manifestPaths].sort((a, b) => {
+    const depthA = a.split("/").length;
+    const depthB = b.split("/").length;
+    if (depthA !== depthB) return depthA - depthB;
+    return a.localeCompare(b);
+  })[0];
+}
+
+async function onProjectPick(ev) {
   const fileList = ev.target.files;
   if (!fileList?.length) return;
-  titleEl.textContent = "Loading project folder…";
+  titleEl.textContent = "Loading project…";
   try {
-    await loadProject(fileList);
+    /** @type {Record<string, string>} */
+    const manifestTexts = {};
+    /** @type {string[]} */
+    const manifestPaths = [];
+    for (const file of fileList) {
+      const rel = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
+      if (!rel.endsWith(".visionproj")) continue;
+      manifestPaths.push(rel);
+      manifestTexts[rel] = await file.text();
+    }
+    if (!manifestPaths.length) {
+      throw new Error(
+        "V-P003: No .visionproj in selection — select the project directory containing a manifest",
+      );
+    }
+    const manifestRel = selectManifestPath(manifestPaths);
+    /** @type {Record<string, string>} */
+    const visionFiles = {};
+    for (const file of fileList) {
+      const rel = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
+      if (!rel.endsWith(".vision")) continue;
+      visionFiles[rel] = await file.text();
+    }
+    const resp = await fetch("/__vision/project", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        manifestSource: manifestTexts[manifestRel],
+        manifestRel,
+        files: visionFiles,
+      }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    finishLoad(await resp.json());
+    log(`Loaded project ${manifestRel}`);
   } catch (err) {
     showLoadError(err);
   } finally {
@@ -111,76 +164,7 @@ async function onFolderPick(ev) {
   }
 }
 
-function buildFilesMap(fileList) {
-  /** @type {Record<string, string>} */
-  const files = {};
-  for (const file of fileList) {
-    const rel = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
-    if (!rel.endsWith(".vision")) continue;
-    files[rel] = null;
-  }
-  return { files, paths: Object.keys(files) };
-}
 
-async function readFilesIntoMap(fileList, files) {
-  const paths = Object.keys(files);
-  await Promise.all(
-    paths.map(async (rel) => {
-      const file = [...fileList].find(
-        (f) => (f.webkitRelativePath || f.name).replace(/\\/g, "/") === rel,
-      );
-      if (!file) return;
-      files[rel] = await file.text();
-    }),
-  );
-}
-
-function detectProjectRoot(entryPath) {
-  const normalized = entryPath.replace(/\\/g, "/");
-  const slash = normalized.lastIndexOf("/");
-  return slash >= 0 ? normalized.slice(0, slash) : "";
-}
-
-function detectLeafEntry(files) {
-  const keys = Object.keys(files).sort();
-  for (const key of keys) {
-    const body = files[key];
-    if (/\bvision\s+/i.test(body) && /\bscreen\s+/i.test(body)) return key;
-  }
-  return keys[0] ?? null;
-}
-
-function normalizeProjectFiles(files, entryPath) {
-  const projectRoot = detectProjectRoot(entryPath);
-  const prefix = projectRoot ? projectRoot + "/" : "";
-  /** @type {Record<string, string>} */
-  const normalized = {};
-  for (const [key, content] of Object.entries(files)) {
-    const rel = prefix && key.startsWith(prefix) ? key.slice(prefix.length) : key;
-    normalized[rel] = content;
-  }
-  const entryRel = prefix && entryPath.startsWith(prefix) ? entryPath.slice(prefix.length) : entryPath;
-  return { projectRoot, entryRel, files: normalized };
-}
-
-async function loadProject(fileList) {
-  const { files, paths } = buildFilesMap(fileList);
-  if (!paths.length) {
-    throw new Error("No .vision files in selected folder");
-  }
-  await readFilesIntoMap(fileList, files);
-  const entryPath = detectLeafEntry(files);
-  if (!entryPath) throw new Error("Could not detect leaf .vision entry");
-  const { projectRoot, entryRel, files: normalized } = normalizeProjectFiles(files, entryPath);
-  const resp = await fetch("/__vision/compose", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ entryPath: entryRel, files: normalized, projectRoot }),
-  });
-  if (!resp.ok) throw new Error(await resp.text());
-  finishLoad(await resp.json());
-  log(`Loaded project ${entryRel}`);
-}
 
 function hasImportDirectives(source) {
   return /^\s*import\s+/m.test(source) || /^\s*!include\s+/m.test(source);
@@ -215,7 +199,7 @@ async function loadText(source, fileName = "") {
       return;
     }
     throw new Error(
-      "This .vision file uses import directives. Use Open project folder and select the project root (directory containing imported packs).",
+      "This .vision file uses import directives. Use Open project and select the directory containing a .visionproj manifest.",
     );
   }
   doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });

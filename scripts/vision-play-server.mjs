@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { invokeGdlBridgeSync } from "../parser/gdl-bridge.js";
 import { composeVisionFile, composeVisionFromMap } from "../parser/vision-compose.js";
+import { composeVisionProject, composeVisionProjectFromUpload } from '../parser/vision-project.js';
 
 const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const PORT = Number(process.env.PORT || 5199);
@@ -73,6 +74,38 @@ const server = http.createServer(async (req, res) => {
       });
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(doc));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(String(err?.message ?? err));
+    }
+    return;
+  }
+  if (req.method === "POST" && req.url === "/__vision/project") {
+    try {
+      const body = JSON.parse(await readBody(req));
+      const { path: relPath, manifestSource, manifestRel, files } = body;
+      if (relPath) {
+        const fullPath = path.normalize(path.join(ROOT, String(relPath).replace(/^\//, "")));
+        if (!fullPath.startsWith(ROOT)) {
+          res.writeHead(403);
+          res.end("Forbidden");
+          return;
+        }
+        const doc = await composeVisionProject(fullPath);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(doc));
+        return;
+      }
+      if (manifestSource && manifestRel && files && typeof files === "object") {
+        const doc = await composeVisionProjectFromUpload(String(manifestSource), String(manifestRel), files, {
+          strict: false,
+        });
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(doc));
+        return;
+      }
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("path or manifestSource+manifestRel+files required");
     } catch (err) {
       res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
       res.end(String(err?.message ?? err));
