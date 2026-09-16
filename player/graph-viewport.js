@@ -14,7 +14,7 @@ function lookupMeta(groupEl, idMap) {
 
 /** @param {{ kind: string, id: string, host?: string | null }} meta */
 function screenIdFromMeta(meta) {
-  return meta.kind === "block" ? meta.host : meta.id;
+  return meta.kind === "component" ? meta.host : meta.id;
 }
 
 export class GraphViewport {

@@ -9,27 +9,44 @@ vision <id>
   [title "<human title>"]
   [use <plugin-id> ...]
 
-catalog <id>
-  [defaults / commands table / phrases table / bindings table …]
-end catalog
+defaults
+  icon.library = codicons
+end defaults
 
-deck <id>
-  preset <name>
-    [topology / forward / mfd / …]
-  end preset
-end deck
+icon-libraries
+  codicons source npm:@vscode/codicons
+end icon-libraries
+
+components <planet-id>
+  table zone
+  | id | kind | label |
+end components
+
+presentation <component-id>
+  label "…"
+  table kind
+  | kind | icon | color-token |
+end presentation
+
+catalog <id> … end catalog
+deck <id> … end deck
 
 screen <id> [overlay]
-  <blocks...>
+  component <id> <kind>
+  row [ a | b ]
+  col [ a | b ]
   [<plugin deck lines — see Plugins>]
 
-fixture <block-id-or-role>
-  <data lines>
+fixture <component-id>
+  folder <name> …
+  file <path> <kind>
+  [key lines for non-tree fixtures]
+end fixture
 
 go <from> -> <to> when <trigger>
   [then <note>]
 
-on <block> <event> [<target>] -> <screen|block>
+on <component> <event> [<target>] -> <component|screen>
   [then <note>]
 
 end
@@ -40,92 +57,73 @@ end
 - First declared screen without `overlay` is the **entry** screen (else first screen).
 - `overlay` — rendered on dimmed backdrop over previous screen (palette pattern).
 
-## Blocks (sketch primitives)
+## Components (alignment instruments)
 
 | Syntax | Renders |
 |---|---|
-| `row [ a \| b \| c ]` | horizontal split (flex) |
-| `col [ a \| b ]` | vertical split |
-| `panel <id>` | labeled sketch panel |
-| `tree <id>` | tree; uses `fixture <id>` if present |
-| `tabs <id>` | tab strip sketch |
-| `preview <id>` | preview placeholder |
-| `repl <id>` | data-lab / REPL sketch; uses `fixture <id>` if present |
-| `pad <id>` | Script Pad sketch (STUDIO-ADR-0002 `script-pad` zone) |
-| `search` | search field sketch |
-| `command-list` | list; uses fixture named `command-list` or last fixture |
+| `component <id> <kind>` | instrument instance on screen |
+| `row [ a \| b \| c ]` | horizontal split (layout primitive) |
+| `col [ a \| b ]` | vertical split (layout primitive) |
 
-Block ids in layouts reference nested `panel`/`tree`/etc. lines in the same screen.
-
-**Catalog:** inline `catalog` section; parse via federation `CatalogParser` (VisionGdlBridge). `command-list` block uses `doc.catalog`.
-
-**Deck:** inline `deck` section; parse via federation `DeckParser`. Vision-only `mfd-tabs` / `split` on screen lines.
-
-**Layout binding:** `tree` / `tabs` / `preview` / `panel` / `repl` blocks whose `id` appears in a `row`/`col` slot **or** in a plugin deck zone render **only inside that slot**, not again at screen root (avoids duplication).
-
-## Plugins
-
-Core VisionSpec stays domain-agnostic. Federation / cockpit vocabulary lives in plugins.
-
-```text
-use aiguiders-mental-model
-
-screen studio
-  preset report-author
-  topology (MFD)(F)
-  forward report-preview
-  mfd spec-tree | editor
-  split data-lab
-  eicas resolve
-  tree spec-tree
-  ...
-```
-
-| Plugin | Role |
+| `<kind>` | Sketch behavior |
 |---|---|
-| `aiguiders-mental-model` | GUIDERS-ADR-0007/0058 deck topology (Forward / MFD / split / EICAS) |
+| `tree` | hierarchical list; typed `fixture <id>` |
+| `tabs` | tab strip sketch |
+| `preview` | preview placeholder |
+| `panel` | labeled panel |
+| `repl` | data-lab / REPL sketch |
+| `pad` | script pad sketch |
+| `search` | search field sketch |
+| `command-list` | palette list; uses `doc.catalog` when present |
 
-See `design/VISION-ADR-0002-plugin-model.md` for the contract (`parseScreenLine`, `deckZoneIds`, `renderScreen`).
+Component ids in layout slots and deck zones reference `component` lines on the same screen. Deck-bound component **id equals deck zone id**.
+
+**Layout binding:** components whose `id` appears in a `row`/`col` slot or plugin deck zone render **only inside that slot**, not again at screen root.
+
+## Presentation & icons
+
+- `presentation <component-id>` — optional label override + `table kind` mapping artifact kinds to icon refs (`codicons/folder`) and color tokens (`tree-folder`).
+- Player resolves icons via bundled `@vscode/codicons`; color tokens map to CSS custom properties (`--artifact-dashspec`, …).
 
 ## Fixtures
 
-Indented or following lines under `fixture`:
+Typed tree (preferred for `tree` components):
 
 ```text
-fixture project-tree
-  demo-soak.dashspec
-  diagrams/peak-kpi.dashdiagram
+fixture spec-tree
+  folder planet-repo
+    file report.dashspec dashspec
+end fixture
 ```
+
+Non-tree fixtures use key lines under `fixture … end fixture`.
 
 ## Transitions
 
 ### `go`
 
-| Trigger | Player behavior |
-|---|---|
-| `Ctrl+K`, `Escape`, `Enter` | keyboard |
-| `select` | generic list pick |
-| `select-command` | command-list pick |
-| `double-click` | tree double-click |
+Keyboard / list triggers (`Ctrl+K`, `Escape`, `select-command`, `F12`, …).
 
 ### `on`
 
-Interaction on a **block** inside a screen. Target after `->` is either:
+Interaction on a **component**. Target after `->` is another **component id** (focus / cross-screen) or a **screen id**.
 
-- another **block id** in the same screen (focus / in-screen flow), e.g.  
-  `on spec-tree double-click file -> editor`
-- a **screen id** (leave screen), e.g. legacy cross-screen handlers
+Graph view: `on` edges connect **component nodes** (`component:<id>`) inside screen clusters.
 
-Optional `then` describes side effects (open tab, show resolve, …).
+## Plugins
 
-Graph view: `on` edges connect **block nodes** (smaller boxes under their screen), not self-loops on the screen.
+```text
+use aiguiders-mental-model
+```
+
+Federation deck topology (`forward`, `mfd`, `mfd-tabs`, `split`, `eicas`, `use-deck`) — see `design/VISION-ADR-0002-plugin-model.md`.
 
 ## Player modes
 
 | Mode | Purpose |
 |---|---|
 | **Sketch** | Clickable wire UI + transition log |
-| **Transition graph** | Screen `go` + block `on` graph; click node → jump to sketch |
+| **Transition graph** | Screen `go` + component `on` graph |
 
 ## End
 

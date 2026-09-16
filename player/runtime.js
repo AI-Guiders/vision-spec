@@ -1,12 +1,21 @@
 import { parseVision, entryScreen } from "../parser/vision-parser.js";
 import { paletteRowsFromCatalog } from "../parser/gdl-ir.js";
-import { isLayoutBoundBlock } from "../parser/vision-graph.js";
+import { isLayoutBoundComponent } from "../parser/vision-graph.js";
+import { fixtureKeylines, fixtureTreeNodes } from "../parser/fixture-parse.js";
 import { resolvePlugins } from "../parser/plugins.js";
 import { renderTransitionGraph } from "./transition-graph.js";
 import {
   parseReadinessFixtureLines,
   renderEnvironmentReadinessPage,
 } from "./environment-readiness-page.js";
+import {
+  colorTokenCssVar,
+  ensureIconLibraries,
+  lookupPresentationColorToken,
+  lookupPresentationIcon,
+  renderIcon,
+} from "./icon-registry.js";
+
 const stage = document.getElementById("stage");
 const overlayRoot = document.getElementById("overlay-root");
 const logList = document.getElementById("log-list");
@@ -21,12 +30,6 @@ let currentScreenId = "";
 let overlayScreenId = null;
 /** @type {"sketch" | "graph"} */
 let viewMode = "sketch";
-
-const keyTriggers = new Map([
-  ["k", "Ctrl+K"],
-  ["escape", "Escape"],
-  ["enter", "Enter"],
-]);
 
 init();
 
@@ -70,6 +73,7 @@ function onFilePick(ev) {
 
 async function loadText(source) {
   doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });
+  ensureIconLibraries(doc);
   titleEl.textContent = doc.title || doc.id;
   currentScreenId = entryScreen(doc).id;
   overlayScreenId = null;
@@ -138,8 +142,8 @@ function renderScreen(screen, isOverlay) {
     for (const plugin of resolvePlugins(doc)) {
       const deckRoot = plugin.renderScreen?.(screen, {
         renderZone: (zoneId) => {
-          const block = findBlock(screen, zoneId);
-          return block ? renderBlock(block, screen) : null;
+          const comp = findComponent(screen, zoneId);
+          return comp ? renderComponent(comp, screen) : null;
         },
         labelForZone: zoneLabel,
       });
@@ -165,25 +169,15 @@ function renderScreen(screen, isOverlay) {
     return root;
   }
 
-  if (isOverlay && screenHasCommandPalette(screen)) {
-    const panel = document.createElement("div");
-    panel.className = "sketch-block overlay-card palette-panel";
-    const body = document.createElement("div");
-    body.className = "block-body palette-body";
-    panel.appendChild(body);
-    renderCommandPalette(body);
-    root.appendChild(panel);
-    setTimeout(() => {
-      const search = root.querySelector(".palette-search");
-      search?.focus();
-    }, 0);
-    return root;
+  for (const layout of screen.layout ?? []) {
+    root.appendChild(renderLayout(layout, screen));
   }
 
-  for (const block of screen.blocks) {
-    if (isLayoutBoundBlock(block, screen, doc)) continue;
-    root.appendChild(renderBlock(block, screen));
+  for (const comp of screen.components) {
+    if (isLayoutBoundComponent(comp, screen, doc)) continue;
+    root.appendChild(renderComponent(comp, screen));
   }
+
   if (isOverlay) {
     const card = root.querySelector(".sketch-block") ?? root;
     if (card.classList) card.classList.add("overlay-card");
@@ -197,46 +191,46 @@ function renderScreen(screen, isOverlay) {
 }
 
 function screenHasCommandPalette(screen) {
-  return screen.blocks.some((b) => b.kind === "command-list");
+  return screen.components.some((c) => c.kind === "command-list");
 }
 
-function renderBlock(block, screen) {
-  if (block.kind === "row" || block.kind === "col") {
-    const row = document.createElement("div");
-    row.className = block.kind === "row" ? "sketch-row" : "sketch-col";
-    for (const slotId of block.slots) {
-      const slot = document.createElement("div");
-      slot.className = "sketch-slot";
-      const nested = findBlock(screen, slotId);
-      if (nested) slot.appendChild(renderBlock(nested, screen));
-      else slot.appendChild(placeholder(slotId));
-      row.appendChild(slot);
-    }
-    return row;
+function renderLayout(layout, screen) {
+  const row = document.createElement("div");
+  row.className = layout.kind === "row" ? "sketch-row" : "sketch-col";
+  for (const slotId of layout.slots) {
+    const slot = document.createElement("div");
+    slot.className = "sketch-slot";
+    const nested = findComponent(screen, slotId);
+    if (nested) slot.appendChild(renderComponent(nested, screen));
+    else slot.appendChild(placeholder(slotId));
+    row.appendChild(slot);
   }
+  return row;
+}
 
+function renderComponent(comp, screen) {
   const wrap = document.createElement("div");
   wrap.className = "sketch-block";
-  if (block.kind === "panel" && block.id === "resolve") wrap.classList.add("panel-resolve");
+  if (comp.kind === "panel" && comp.id === "resolve") wrap.classList.add("panel-resolve");
 
   const title = document.createElement("div");
   title.className = "block-title";
-  title.textContent = blockLabel(block);
+  title.textContent = componentLabel(comp);
   wrap.appendChild(title);
 
   const body = document.createElement("div");
   body.className = "block-body";
   wrap.appendChild(body);
 
-  switch (block.kind) {
+  switch (comp.kind) {
     case "tree":
-      renderTree(body, block.id);
+      renderTree(body, comp.id);
       break;
     case "tabs":
-      renderTabs(body, block.id);
+      renderTabs(body, comp.id);
       break;
     case "preview":
-      body.innerHTML = `<div class="preview-placeholder">Preview sketch<br/><span class="muted">${block.id}</span></div>`;
+      body.innerHTML = `<div class="preview-placeholder">Preview sketch<br/><span class="muted">${comp.id}</span></div>`;
       break;
     case "search":
       body.innerHTML = `<input class="search-input" placeholder="Search or run command…" />`;
@@ -245,37 +239,44 @@ function renderBlock(block, screen) {
       renderCommandList(body);
       break;
     case "panel":
-      if (block.id === "resolve") {
+      if (comp.id === "resolve") {
         wrap.classList.add("resolve-quiet");
         title.remove();
-        /* Dark Cockpit: EICAS silent when project has no issues */
-      } else if (block.id === "layout-board") {
+      } else if (comp.id === "layout-board") {
         body.innerHTML = `<div class="layout-board-sketch muted">Layout board · Phase 2<br/>grammar exists · drag UI later</div>`;
       } else {
-        body.textContent = `${block.id} panel`;
+        body.textContent = `${comp.id} panel`;
       }
       break;
     case "repl":
-      if (block.id === "data-lab") renderDataLab(body, block.id);
-      else renderRepl(body, block.id);
+      if (comp.id === "data-lab") renderDataLab(body, comp.id);
+      else renderRepl(body, comp.id);
       break;
     case "pad":
-      renderPad(body, block.id);
+      renderPad(body, comp.id);
       break;
     default:
-      body.textContent = block.kind;
+      body.textContent = comp.kind;
   }
 
   return wrap;
 }
 
-function findBlock(screen, id) {
-  return screen.blocks.find(
-    (b) => b.id === id && ["tree", "tabs", "preview", "panel", "repl", "pad"].includes(b.kind),
+function findComponent(screen, id) {
+  return screen.components.find(
+    (c) =>
+      c.id === id &&
+      ["tree", "tabs", "preview", "panel", "repl", "pad", "search", "command-list"].includes(
+        c.kind,
+      ),
   );
 }
 
 function zoneLabel(zoneId) {
+  const pres = doc?.presentations?.[zoneId];
+  if (pres?.label) return pres.label;
+  const row = doc?.componentRegistry?.rows?.find((r) => r.id === zoneId);
+  if (row?.label) return row.label;
   const labels = {
     "spec-tree": "Project Browser",
     editor: "Document editor",
@@ -284,6 +285,7 @@ function zoneLabel(zoneId) {
     "script-pad": "Script Pad",
     "layout-board": "Layout board",
     resolve: "Project issues",
+    palette: "Command palette",
   };
   return labels[zoneId] ?? zoneId;
 }
@@ -302,14 +304,23 @@ function renderRepl(container, fixtureId) {
   }
 }
 
+function normalizeReadinessKeyline(line) {
+  const t = line.trim();
+  const connector = t.match(/^connector\s+(.+)$/i);
+  if (connector) return `connector: ${connector[1]}`;
+  const schema = t.match(/^schema\s+(.+)$/i);
+  if (schema) return `schema: ${schema[1]}`;
+  return t;
+}
+
 function splitDataLabFixtureLines(lines) {
   /** @type {string[]} */
   const readinessLines = [];
   /** @type {string[]} */
   const replLines = [];
   for (const line of lines) {
-    if (/^\s*repl:/i.test(line)) replLines.push(line);
-    else readinessLines.push(line);
+    if (/^\s*repl\b/i.test(line) || /^\s*repl:/i.test(line)) replLines.push(line);
+    else readinessLines.push(normalizeReadinessKeyline(line));
   }
   return { readinessLines, replLines };
 }
@@ -343,7 +354,7 @@ function renderDataLab(container, fixtureId) {
   for (const line of replLines) {
     const div = document.createElement("div");
     div.className = "repl-line";
-    div.textContent = line.replace(/^\s*repl:\s*/i, "");
+    div.textContent = line.replace(/^\s*repl:?\s*/i, "");
     replBody.appendChild(div);
   }
   if (!replLines.length) replBody.textContent = "SELECT … · grid";
@@ -368,6 +379,7 @@ function renderPad(container, fixtureId) {
     container.appendChild(div);
   }
 }
+
 function placeholder(id) {
   const d = document.createElement("div");
   d.className = "sketch-block";
@@ -375,36 +387,67 @@ function placeholder(id) {
   return d;
 }
 
-function blockLabel(block) {
-  if (block.kind === "search") return "search";
-  if (block.kind === "command-list") return "command-list";
-  return `${block.kind}${block.id ? ` · ${block.id}` : ""}`;
+function componentLabel(comp) {
+  if (comp.kind === "search") return "search";
+  if (comp.kind === "command-list") return zoneLabel(comp.id);
+  return zoneLabel(comp.id);
 }
 
 function fixture(name) {
-  return doc.fixtures[name] ?? doc.fixtures["command-list"] ?? [];
+  const fix = doc.fixtures[name];
+  if (!fix) {
+    const palette = doc.fixtures.palette ?? doc.fixtures["command-list"];
+    return fixtureKeylines(palette ?? { type: "keylines", lines: [] });
+  }
+  return fixtureKeylines(fix);
 }
 
-function renderTree(container, fixtureId) {
-  const items = fixture(fixtureId);
-  if (!items.length) {
+function renderTree(container, componentId) {
+  const fix = doc.fixtures[componentId];
+  const nodes = fixtureTreeNodes(fix ?? { type: "keylines", lines: [] });
+  if (!nodes.length) {
     container.textContent = "(no fixture)";
     return;
   }
-  for (const item of items) {
-    const div = document.createElement("div");
-    div.className = "tree-item";
-    div.textContent = item;
-    div.title = "Double-click to open";
-    div.addEventListener("dblclick", () => {
-      fireHandler(fixtureId, "double-click", "file", item);
-    });
-    container.appendChild(div);
-  }
+  renderTreeNodes(container, nodes, componentId, 0);
   const badge = document.createElement("span");
   badge.className = "badge-fixture";
-  badge.textContent = "FIXTURE";
+  badge.textContent = "FIXTURE DATA";
   container.parentElement?.querySelector(".block-title")?.appendChild(badge);
+}
+
+function renderTreeNodes(container, nodes, componentId, depth) {
+  for (const node of nodes) {
+    const row = document.createElement("div");
+    row.className = "tree-row";
+    row.style.paddingLeft = `${depth * 14}px`;
+
+    const iconEl = document.createElement("span");
+    iconEl.className = "tree-icon";
+    const artifactKind = node.kind === "folder" ? "folder" : node.artifactKind;
+    renderIcon(iconEl, lookupPresentationIcon(doc, componentId, artifactKind));
+
+    const colorToken = lookupPresentationColorToken(doc, componentId, artifactKind);
+    const cssVar = colorTokenCssVar(colorToken);
+    if (cssVar) row.style.color = `var(${cssVar})`;
+
+    const label = document.createElement("span");
+    label.className = "tree-label";
+    label.textContent = node.kind === "folder" ? node.name : node.path;
+
+    row.appendChild(iconEl);
+    row.appendChild(label);
+
+    if (node.kind === "file") {
+      row.title = "Double-click to open";
+      row.addEventListener("dblclick", () => {
+        fireHandler(componentId, "double-click", "file", node.path);
+      });
+    }
+
+    container.appendChild(row);
+    if (node.kind === "folder") renderTreeNodes(container, node.children, componentId, depth + 1);
+  }
 }
 
 function renderTabs(container, id) {
@@ -453,7 +496,7 @@ function paletteFuzzyMatch(query, cmd) {
 function paletteCommands() {
   const fromCatalog = paletteRowsFromCatalog(doc?.catalog);
   if (fromCatalog.length) return fromCatalog;
-  return fixture("command-list").map(parseCommandFixtureLine);
+  return fixture("palette").map(parseCommandFixtureLine);
 }
 
 function renderCommandPalette(container) {
@@ -623,24 +666,23 @@ function transition(when, detail) {
   stage.focus();
 }
 
-function fireHandler(block, event, target, detail) {
+function fireHandler(component, event, target, detail) {
   const h = doc.handlers.find(
-    (x) =>
-      x.block === block &&
-      x.event === event &&
-      x.target === target,
+    (x) => x.component === component && x.event === event && x.target === target,
   );
   if (!h) {
-    log(`No handler: ${block} ${event} ${target}`);
+    log(`No handler: ${component} ${event} ${target}`);
     return;
   }
   currentScreenId = h.toScreen ?? h.to;
   overlayScreenId = null;
-  const dest = h.toBlock ? `${h.toBlock} (${h.toScreen ?? h.to})` : (h.toScreen ?? h.to);
+  const dest = h.toComponent
+    ? `${h.toComponent} (${h.toScreen ?? h.to})`
+    : (h.toScreen ?? h.to);
   log(
     h.then
-      ? `${block} ${event} → ${dest} — ${h.then}: ${detail}`
-      : `${block} ${event} → ${dest}: ${detail}`,
+      ? `${component} ${event} → ${dest} — ${h.then}: ${detail}`
+      : `${component} ${event} → ${dest}: ${detail}`,
   );
   render();
   stage.focus();
@@ -651,4 +693,3 @@ function log(message) {
   li.textContent = message;
   logList.prepend(li);
 }
-

@@ -1,5 +1,5 @@
 /**
- * VisionSpec v0 parser — line-oriented, returns JSON-serializable IR.
+ * VisionSpec parser — component model (VISION-ADR-0004).
  */
 
 import { resolveOnTarget } from "./vision-graph.js";
@@ -10,6 +10,13 @@ import {
   wrapDeckDocument,
 } from "./gdl-router.js";
 import { invokeGdlBridgeAsync } from "./gdl-bridge-core.js";
+import { parsePipeTable, rowToRecord } from "./vision-tables.js";
+import { parseIconRef } from "./icon-ref.js";
+import { parseFixtureBody } from "./fixture-parse.js";
+import { isComponentKind } from "./component-kinds.js";
+import { validateDocument } from "./vision-validate.js";
+
+/** @typedef {{ kind: "folder", name: string, children: TreeFixtureNode[] } | { kind: "file", path: string, artifactKind: string }} TreeFixtureNode */
 
 /** @param {"catalog"|"deck"} kind @param {string} wrapped @param {string | undefined} gdlEndpoint */
 async function parseGdlBlock(kind, wrapped, gdlEndpoint) {
@@ -20,40 +27,79 @@ async function parseGdlBlock(kind, wrapped, gdlEndpoint) {
     : bridge.parseDeckViaBridge(wrapped);
 }
 
-const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end|use|catalog|deck)\b/i;
+const KEYWORD_LINE =
+  /^(vision|screen|fixture|go|on|end|use|catalog|deck|component|components|presentation|icon-libraries|defaults)\b/i;
 const USE_LINE = /^use\s+(\S+)\s*$/i;
 const TITLE_LINE = /^title\s+"([^"]*)"/i;
 const LAYOUT_ROW = /^row\s+\[(.+)\]\s*$/i;
 const LAYOUT_COL = /^col\s+\[(.+)\]\s*$/i;
-const PANEL_LINE = /^panel\s+(\S+)/i;
-const TREE_LINE = /^tree\s+(\S+)/i;
-const TABS_LINE = /^tabs\s+(\S+)/i;
-const PREVIEW_LINE = /^preview\s+(\S+)/i;
-const REPL_LINE = /^repl\s+(\S+)/i;
-const PAD_LINE = /^pad\s+(\S+)/i;
-const SEARCH_LINE = /^search\s*$/i;
-const COMMAND_LIST_LINE = /^command-list\s*$/i;
+const COMPONENT_LINE = /^component\s+(\S+)\s+(\S+)\s*$/i;
 const GO_LINE = /^go\s+(\S+)\s+->\s+(\S+)\s+when\s+(.+)$/i;
 const ON_LINE = /^on\s+(\S+)\s+(\S+)\s+(\S+)\s+->\s+(\S+)\s*$/i;
 const THEN_LINE = /^\s*then\s+(.+)$/i;
+const ICON_LIBRARY_LINE = /^(\S+)\s+source\s+(\S+)\s*$/i;
+const DEFAULT_KV = /^([\w.-]+)\s*=\s*(.+)\s*$/;
+const LABEL_LINE = /^label\s+"([^"]*)"\s*$/i;
 
+/** @param {string[]} body @param {string} defaultLibrary */
+function parsePresentationBody(body, defaultLibrary) {
+  /** @type {{ label: string | null, kinds: { kind: string, icon: ReturnType<typeof parseIconRef>, colorToken: string }[] }} */
+  const pres = { label: null, kinds: [] };
+  const lines = body.map((l) => l.trimEnd());
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const labelMatch = trimmed.match(LABEL_LINE);
+    if (labelMatch) {
+      pres.label = labelMatch[1];
+      continue;
+    }
+    if (/^table\s+kind\s*$/i.test(trimmed)) {
+      const table = parsePipeTable(lines, i + 1);
+      pres.kinds = table.rows.map((row) => {
+        const rec = rowToRecord(table.headers, row);
+        return {
+          kind: rec.kind,
+          icon: parseIconRef(rec.icon, defaultLibrary),
+          colorToken: rec["color-token"] ?? rec.colorToken ?? "",
+        };
+      });
+      i = table.next - 1;
+    }
+  }
+  return pres;
+}
+
+/**
+ * @param {string} source
+ * @param {{ gdlEndpoint?: string, strict?: boolean }} [options]
+ */
 export async function parseVision(source, options = {}) {
   const gdlEndpoint = options.gdlEndpoint;
   const lines = source.split(/\r?\n/);
+  /** @type {VisionDocument} */
   const doc = {
     id: "",
     title: "",
     plugins: [],
+    defaults: { iconLibrary: "codicons" },
+    iconLibraries: [{ id: "codicons", source: "npm:@vscode/codicons" }],
+    componentRegistry: null,
+    presentations: {},
     screens: [],
     fixtures: {},
     catalog: null,
     deck: null,
     transitions: [],
     handlers: [],
+    diagnostics: [],
   };
 
   let screen = null;
+  /** @type {string | null} */
   let fixtureName = null;
+  /** @type {string[]} */
+  let fixtureBody = [];
   let pendingGo = null;
 
   for (let i = 0; i < lines.length; i++) {
@@ -75,26 +121,82 @@ export async function parseVision(source, options = {}) {
       continue;
     }
 
+    if (/^end\s+fixture\s*$/i.test(trimmed) && fixtureName) {
+      doc.fixtures[fixtureName] = parseFixtureBody(fixtureBody);
+      fixtureName = null;
+      fixtureBody = [];
+      continue;
+    }
+
+    if (/^end\s+presentation\s*$/i.test(trimmed)) {
+      continue;
+    }
+
+    if (fixtureName) {
+      fixtureBody.push(raw);
+      continue;
+    }
+
     if (/^vision\s+/i.test(trimmed)) {
       doc.id = trimmed.split(/\s+/)[1];
       continue;
     }
 
-    if (/^catalog\s+/i.test(trimmed) && !screen && !fixtureName) {
+    if (/^defaults\s*$/i.test(trimmed) && !screen && !fixtureName) {
+      const block = readVisionDefaults(lines, i);
+      applyVisionDefaults(doc, block.body);
+      i = block.next - 1;
+      continue;
+    }
+
+    if (/^icon-libraries\s*$/i.test(trimmed) && !screen) {
+      const block = readTopLevelBlock(lines, i, "icon-libraries");
+      doc.iconLibraries = block.body
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const m = line.match(ICON_LIBRARY_LINE);
+          if (!m) throw new Error(`Invalid icon library line: ${line}`);
+          return { id: m[1], source: m[2] };
+        });
+      i = block.next - 1;
+      continue;
+    }
+
+    if (/^components\s+/i.test(trimmed) && !screen) {
+      const planetId = trimmed.split(/\s+/)[1];
+      const block = readTopLevelBlock(lines, i, "components");
+      doc.componentRegistry = parseComponentRegistry(planetId, block.body, doc.defaults.iconLibrary);
+      i = block.next - 1;
+      continue;
+    }
+
+    if (/^presentation\s+/i.test(trimmed) && !screen) {
+      const presentationId = trimmed.split(/\s+/)[1];
+      const block = readTopLevelBlock(lines, i, "presentation");
+      doc.presentations[presentationId] = parsePresentationBody(
+        block.body,
+        doc.defaults.iconLibrary,
+      );
+      i = block.next - 1;
+      continue;
+    }
+
+    if (/^catalog\s+/i.test(trimmed) && !screen) {
       const id = trimmed.split(/\s+/)[1];
       const block = readTopLevelBlock(lines, i, "catalog");
       const wrapped = wrapCatalogDocument(id, block.body);
       doc.catalog = await parseGdlBlock("catalog", wrapped, gdlEndpoint);
-      i = block.next;
+      i = block.next - 1;
       continue;
     }
 
-    if (/^deck\s+/i.test(trimmed) && !screen && !fixtureName) {
+    if (/^deck\s+/i.test(trimmed) && !screen) {
       const id = trimmed.split(/\s+/)[1];
       const block = readTopLevelBlock(lines, i, "deck");
       const wrapped = wrapDeckDocument(id, block.body);
       doc.deck = await parseGdlBlock("deck", wrapped, gdlEndpoint);
-      i = block.next;
+      i = block.next - 1;
       continue;
     }
 
@@ -109,24 +211,19 @@ export async function parseVision(source, options = {}) {
       screen = {
         id: parts[1],
         overlay: parts.includes("overlay"),
-        blocks: [],
+        components: [],
+        layout: [],
         deck: null,
       };
       doc.screens.push(screen);
-      fixtureName = null;
       pendingGo = null;
       continue;
     }
 
     if (/^fixture\s+/i.test(trimmed)) {
       fixtureName = trimmed.split(/\s+/)[1];
-      doc.fixtures[fixtureName] = [];
+      fixtureBody = [];
       pendingGo = null;
-      continue;
-    }
-
-    if (fixtureName) {
-      doc.fixtures[fixtureName].push(trimmed);
       continue;
     }
 
@@ -147,7 +244,7 @@ export async function parseVision(source, options = {}) {
       const m = trimmed.match(ON_LINE);
       if (!m) throw new Error(`Line ${i + 1}: invalid on: ${trimmed}`);
       doc.handlers.push({
-        block: m[1],
+        component: m[1],
         event: m[2],
         target: m[3],
         to: m[4],
@@ -171,33 +268,74 @@ export async function parseVision(source, options = {}) {
       if (handled) continue;
     }
 
-    if (!screen) continue;
+    if (!screen) {
+      if (KEYWORD_LINE.test(trimmed)) throw new Error(`Line ${i + 1}: unexpected top-level: ${trimmed}`);
+      continue;
+    }
 
-    let block = null;
+    let layout = null;
     let m;
-    if ((block = matchLayout(LAYOUT_ROW, trimmed, "row"))) screen.blocks.push(block);
-    else if ((block = matchLayout(LAYOUT_COL, trimmed, "col"))) screen.blocks.push(block);
-    else if ((m = trimmed.match(PANEL_LINE))) screen.blocks.push({ kind: "panel", id: m[1] });
-    else if ((m = trimmed.match(TREE_LINE))) screen.blocks.push({ kind: "tree", id: m[1] });
-    else if ((m = trimmed.match(TABS_LINE))) screen.blocks.push({ kind: "tabs", id: m[1] });
-    else if ((m = trimmed.match(PREVIEW_LINE))) screen.blocks.push({ kind: "preview", id: m[1] });
-    else if ((m = trimmed.match(REPL_LINE))) screen.blocks.push({ kind: "repl", id: m[1] });
-    else if ((m = trimmed.match(PAD_LINE))) screen.blocks.push({ kind: "pad", id: m[1] });
-    else if (SEARCH_LINE.test(trimmed)) screen.blocks.push({ kind: "search" });
-    else if (COMMAND_LIST_LINE.test(trimmed)) screen.blocks.push({ kind: "command-list" });
-    else if (KEYWORD_LINE.test(trimmed)) throw new Error(`Line ${i + 1}: unexpected: ${trimmed}`);
+    if ((layout = matchLayout(LAYOUT_ROW, trimmed, "row"))) screen.layout.push(layout);
+    else if ((layout = matchLayout(LAYOUT_COL, trimmed, "col"))) screen.layout.push(layout);
+    else if ((m = trimmed.match(COMPONENT_LINE))) {
+      const kind = m[2];
+      if (!isComponentKind(kind)) throw new Error(`Line ${i + 1}: unknown component kind "${kind}"`);
+      screen.components.push({ id: m[1], kind });
+    } else if (KEYWORD_LINE.test(trimmed)) throw new Error(`Line ${i + 1}: unexpected: ${trimmed}`);
   }
 
   if (!doc.id) throw new Error("Missing vision id");
   if (!doc.screens.length) throw new Error("No screens");
 
   for (const h of doc.handlers) {
-    const { toScreen, toBlock } = resolveOnTarget(doc, h.block, h.to);
+    const { toScreen, toComponent } = resolveOnTarget(doc, h.component, h.to);
     h.toScreen = toScreen;
-    h.toBlock = toBlock;
+    h.toComponent = toComponent;
   }
 
+  validateDocument(doc, { strict: options.strict !== false });
   return doc;
+}
+
+/** @param {string[]} allLines @param {number} start */
+function readVisionDefaults(allLines, start) {
+  const body = [];
+  let i = start + 1;
+  while (i < allLines.length) {
+    const t = allLines[i].trim();
+    if (/^end\s+defaults\s*$/i.test(t)) return { body, next: i + 1 };
+    body.push(allLines[i]);
+    i += 1;
+  }
+  throw new Error("Missing end defaults");
+}
+
+/** @param {VisionDocument} doc @param {string[]} bodyLines */
+function applyVisionDefaults(doc, bodyLines) {
+  for (const raw of bodyLines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const m = line.match(DEFAULT_KV);
+    if (!m) continue;
+    if (m[1] === "icon.library") doc.defaults.iconLibrary = m[2].trim();
+  }
+}
+
+/** @param {string} planetId @param {string[]} body @param {string} defaultLibrary */
+function parseComponentRegistry(planetId, body, defaultLibrary) {
+  const lines = body.map((l) => l.trimEnd());
+  const tableIdx = lines.findIndex((l) => l.trim().startsWith("|"));
+  if (tableIdx < 0) throw new Error("components section requires table");
+  const table = parsePipeTable(lines, tableIdx);
+  const rows = table.rows.map((row) => {
+    const rec = rowToRecord(table.headers, row);
+    return {
+      id: rec.id ?? rec.zone ?? "",
+      kind: rec.kind ?? "",
+      label: rec.label ?? "",
+    };
+  });
+  return { planetId, rows };
 }
 
 function matchLayout(re, text, kind) {
@@ -210,3 +348,5 @@ function matchLayout(re, text, kind) {
 export function entryScreen(doc) {
   return doc.screens.find((s) => !s.overlay) ?? doc.screens[0];
 }
+
+/** @typedef {Awaited<ReturnType<parseVision>>} VisionDocument */

@@ -1,6 +1,6 @@
 /**
  * Vision transition graph → Graphviz IR (@viz-js/viz).
- * Cluster per screen; block handlers nest inside; cross-screen on edges stay visible.
+ * Cluster per screen; components nest inside; cross-screen on edges stay visible.
  */
 
 /** @param {string} id */
@@ -9,7 +9,7 @@ export function dotNodeName(id) {
   return /^[0-9]/.test(name) ? `_${name}` : name;
 }
 
-function blockNodeAttributes(label) {
+function componentNodeAttributes(label) {
   return {
     label,
     shape: "box",
@@ -29,16 +29,16 @@ function blockNodeAttributes(label) {
  */
 export function buildVisionDotGraph(transitionGraph, options = {}) {
   const { activeScreenId, overlayScreenId } = options;
-  /** @type {Map<string, { kind: "screen" | "block", id: string, host?: string | null }>} */
+  /** @type {Map<string, { kind: "screen" | "component", id: string, host?: string | null }>} */
   const idMap = new Map();
 
   const screens = transitionGraph.nodes.filter((n) => n.kind === "screen");
-  const blocks = transitionGraph.nodes.filter((n) => n.kind === "block");
-  const blocksByHost = new Map();
-  for (const block of blocks) {
-    if (!block.host) continue;
-    if (!blocksByHost.has(block.host)) blocksByHost.set(block.host, []);
-    blocksByHost.get(block.host).push(block);
+  const components = transitionGraph.nodes.filter((n) => n.kind === "component");
+  const componentsByHost = new Map();
+  for (const comp of components) {
+    if (!comp.host) continue;
+    if (!componentsByHost.has(comp.host)) componentsByHost.set(comp.host, []);
+    componentsByHost.get(comp.host).push(comp);
   }
 
   const subgraphs = [];
@@ -47,15 +47,15 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
     const clusterName = `cluster_${dotNodeName(screen.id)}`;
     idMap.set(clusterName, { kind: "screen", id: screen.id });
     const isActive = screen.id === activeScreenId || screen.id === overlayScreenId;
-    const hostBlocks = blocksByHost.get(screen.id) ?? [];
+    const hostComponents = componentsByHost.get(screen.id) ?? [];
     const clusterNodes = [];
 
-    for (const block of hostBlocks) {
-      const nodeName = dotNodeName(block.id);
-      idMap.set(nodeName, { kind: "block", id: block.blockId, host: block.host });
+    for (const comp of hostComponents) {
+      const nodeName = dotNodeName(comp.id);
+      idMap.set(nodeName, { kind: "component", id: comp.componentId, host: comp.host });
       clusterNodes.push({
         name: nodeName,
-        attributes: blockNodeAttributes(block.label),
+        attributes: componentNodeAttributes(comp.label),
       });
     }
 
@@ -66,7 +66,7 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
       attributes: { label: "", shape: "point", width: 0.01, height: 0.01, style: "invis" },
     });
 
-    if (hostBlocks.length === 0) {
+    if (hostComponents.length === 0) {
       const anchorName = dotNodeName(`screen__${screen.id}`);
       idMap.set(anchorName, { kind: "screen", id: screen.id });
       clusterNodes.push({
@@ -89,7 +89,7 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
       name: clusterName,
       graphAttributes: {
         label: ` ${screen.label} `,
-        rankdir: hostBlocks.length > 1 ? "LR" : "TB",
+        rankdir: hostComponents.length > 1 ? "LR" : "TB",
         nodesep: 0.9,
         ranksep: 1.1,
         margin: 18,

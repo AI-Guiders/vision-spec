@@ -18,7 +18,10 @@ test("parse dashspec-studio example", async () => {
   assert.equal(doc.screens.find((s) => s.id === "command-palette")?.overlay, true);
   assert.ok(doc.plugins.includes("aiguiders-mental-model"));
   assert.equal(doc.screens[0].deck?.preset, "report-author");
-  assert.ok(doc.fixtures["spec-tree"].length >= 3);
+  assert.equal(doc.fixtures["spec-tree"].type, "tree");
+  assert.ok(doc.fixtures["spec-tree"].nodes.length >= 1);
+  assert.ok(doc.componentRegistry?.rows?.some((r) => r.id === "spec-tree"));
+  assert.ok(doc.presentations["spec-tree"]?.kinds?.length >= 3);
   assert.ok(doc.transitions.some((t) => t.when === "Ctrl+K"));
   assert.ok(doc.transitions.some((t) => t.when === "F12"));
 });
@@ -35,4 +38,5 @@ test("minimal example", async () => {
   );
   const doc = await parseVision(minimal);
   assert.equal(doc.screens.length, 2);
+  assert.equal(doc.screens[0].components[0].kind, "panel");
 });

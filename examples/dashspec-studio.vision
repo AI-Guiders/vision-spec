@@ -7,6 +7,42 @@ use aiguiders-mental-model
 vision dashspec-studio
   title "DashSpec Studio — report author"
 
+defaults
+  icon.library = codicons
+end defaults
+
+icon-libraries
+  codicons   source npm:@vscode/codicons
+end icon-libraries
+
+components dashspec-studio
+  table zone
+  | id             | kind         | label              |
+  | spec-tree      | tree         | Project Browser    |
+  | editor         | tabs         | Document editor    |
+  | data-lab       | repl         | SQL Browser        |
+  | script-pad     | pad          | Script Pad         |
+  | report-preview | preview      | Report Preview     |
+  | resolve        | panel        | Resolve            |
+  | layout-board   | panel        | Layout board       |
+  | palette        | command-list | Command palette    |
+end components
+
+presentation spec-tree
+  label "Project Browser"
+  table kind
+  | kind         | icon                  | color-token           |
+  | folder       | codicons/folder       | tree-folder           |
+  | dashspec     | codicons/file-code    | artifact-dashspec     |
+  | dashlibrary  | codicons/library      | artifact-dashlibrary  |
+  | dashlayout   | codicons/layout       | artifact-dashlayout   |
+  | dashdiagram  | codicons/graph        | artifact-dashdiagram  |
+  | dashpalette  | codicons/color-mode   | artifact-dashpalette  |
+  | dashcatalog  | codicons/list-tree    | artifact-dashcatalog  |
+  | sql          | codicons/database     | artifact-sql          |
+  | catalog-gdl  | codicons/gear         | artifact-catalog-gdl  |
+end presentation
+
 catalog dashspec-studio
 defaults
   command.surfaces = palette, ccl.filter
@@ -46,21 +82,22 @@ end deck
 
 screen studio
   use-deck report-author
-  tabs editor
+  component editor tabs
 
 screen studio-mfd
   mfd-page
   use-deck report-author
   mfd-tabs Project | SQL | Pad | Preview
   split data-lab
-  tree spec-tree
-  repl data-lab
-  pad script-pad
-  preview report-preview
-  panel layout-board
+  component spec-tree tree
+  component data-lab repl
+  component script-pad pad
+  component report-preview preview
+  component layout-board panel
+  component resolve panel
 
 screen command-palette overlay
-  command-list
+  component palette command-list
 
 go studio -> command-palette when Ctrl+K
 go command-palette -> studio when Escape
@@ -74,20 +111,29 @@ on spec-tree double-click file -> editor
   then open tab and show resolve
 
 fixture spec-tree
-  📁 planet-repo/
-  ├─ report.dashspec
-  ├─ libraries/
-  ├─ layouts/
-  ├─ diagrams/peak-kpi.dashdiagram
-  └─ sql/migrations/
+  folder planet-repo
+    file report.dashspec dashspec
+    folder libraries
+      file filters.dashlibrary dashlibrary
+    folder layouts
+      file weekly.dashlayout dashlayout
+    folder diagrams
+      file peak-kpi.dashdiagram dashdiagram
+    folder sql/migrations
+      file 001_views.sql sql
+      file catalog.gdl catalog-gdl
+end fixture
 
 fixture data-lab
-  connector: demo-db
-  schema: reports / cards / binds
-  repl: SELECT COUNT(*) FROM reports
+  connector demo-db
+  schema reports / cards / binds
+  repl SELECT COUNT(*) FROM reports
+end fixture
 
 fixture script-pad
-  > create report with sql-server template ulsa-weekly
-  Plan: report.dashspec · filters.dashlibrary · catalog.gdl · 001_views.sql
+  prompt create report with sql-server template ulsa-weekly
+  plan report.dashspec · filters.dashlibrary · catalog.gdl · 001_views.sql
+end fixture
 
 end
+

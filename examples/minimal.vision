@@ -2,10 +2,10 @@ vision minimal-demo
   title "Two-screen flow"
 
 screen home
-  panel welcome
+  component welcome panel
 
 screen settings overlay
-  panel options
+  component options panel
 
 go home -> settings when Ctrl+K
 go settings -> home when Escape

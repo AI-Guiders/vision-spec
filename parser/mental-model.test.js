@@ -1,5 +1,6 @@
 import { parseVision } from "./vision-parser.js";
 import { deckZoneIds, resolvePlugins } from "./plugins.js";
+import { fixtureKeylines } from "./fixture-parse.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -38,19 +39,20 @@ test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
   assert.ok(zones.has("data-lab"));
   assert.ok(zones.has("resolve"));
   assert.ok(zones.has("script-pad"));
+  assert.ok(zones.has("layout-board"));
 });
 
-test("pad block lives on studio-mfd screen", async () => {
+test("pad component lives on studio-mfd screen", async () => {
   const doc = await parseVision(example);
   const mfdScreen = doc.screens.find((s) => s.id === "studio-mfd");
-  const pad = mfdScreen.blocks.find((b) => b.kind === "pad");
+  const pad = mfdScreen.components.find((c) => c.kind === "pad");
   assert.equal(pad?.id, "script-pad");
-  assert.ok(doc.fixtures["script-pad"]?.length >= 2);
+  assert.ok(fixtureKeylines(doc.fixtures["script-pad"]).length >= 2);
 });
 
 test("data-lab repl uses three-pane SQL Browser sketch", async () => {
   const doc = await parseVision(example);
-  assert.ok(doc.fixtures["data-lab"]?.length >= 3);
+  assert.ok(fixtureKeylines(doc.fixtures["data-lab"]).length >= 3);
 });
 
 test("F12 transitions between Forward and MFD screens", async () => {

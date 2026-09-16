@@ -1,53 +1,63 @@
 /**
- * Build screen + block transition graph IR for Voyager-style view.
+ * Build screen + component transition graph IR.
  */
 
 import { deckZoneIds, resolvePlugins } from "./plugins.js";
+import { SLOT_COMPONENT_KINDS } from "./component-kinds.js";
 
 export function layoutSlotIds(screen, doc) {
   const ids = new Set();
   if (doc) {
     for (const z of deckZoneIds(screen, resolvePlugins(doc))) ids.add(z);
   }
-  for (const block of screen.blocks) {
-    if (block.kind === "row" || block.kind === "col") {
-      for (const slot of block.slots) ids.add(slot);
-    }
+  for (const layout of screen.layout ?? []) {
+    for (const slot of layout.slots) ids.add(slot);
   }
   return ids;
 }
 
-/** Blocks rendered only inside layout slots — skip at screen root. */
-export function isLayoutBoundBlock(block, screen, doc) {
-  if (!block.id) return false;
+/** Components rendered only inside layout slots — skip at screen root. */
+export function isLayoutBoundComponent(comp, screen, doc) {
+  if (!comp?.id) return false;
   const slots = layoutSlotIds(screen, doc);
-  if (!slots.has(block.id)) return false;
-  return ["tree", "tabs", "preview", "panel", "repl", "pad"].includes(block.kind);
+  if (!slots.has(comp.id)) return false;
+  return SLOT_COMPONENT_KINDS.includes(comp.kind);
 }
 
-export function screenForBlock(doc, blockId) {
-  return doc.screens.find((s) => s.blocks.some((b) => b.id === blockId)) ?? null;
+/** @deprecated use isLayoutBoundComponent */
+export const isLayoutBoundBlock = isLayoutBoundComponent;
+
+export function screenForComponent(doc, componentId) {
+  return (
+    doc.screens.find((s) => s.components.some((c) => c.id === componentId)) ?? null
+  );
 }
 
-export function blockNodeId(blockId) {
-  return `block:${blockId}`;
+/** @deprecated use screenForComponent */
+export const screenForBlock = screenForComponent;
+
+export function componentNodeId(componentId) {
+  return `component:${componentId}`;
 }
 
-export function resolveOnTarget(doc, sourceBlock, toToken) {
-  const host = screenForBlock(doc, sourceBlock);
-  if (host?.blocks.some((b) => b.id === toToken)) {
-    return { toScreen: host.id, toBlock: toToken };
+/** @deprecated use componentNodeId */
+export const blockNodeId = componentNodeId;
+
+export function resolveOnTarget(doc, sourceComponent, toToken) {
+  const host = screenForComponent(doc, sourceComponent);
+  if (host?.components.some((c) => c.id === toToken)) {
+    return { toScreen: host.id, toComponent: toToken };
   }
 
-  const crossHost = doc.screens.find((s) => s.blocks.some((b) => b.id === toToken));
+  const crossHost = doc.screens.find((s) => s.components.some((c) => c.id === toToken));
   if (crossHost) {
-    return { toScreen: crossHost.id, toBlock: toToken };
+    return { toScreen: crossHost.id, toComponent: toToken };
   }
 
   const screen = doc.screens.find((s) => s.id === toToken);
-  if (screen) return { toScreen: toToken, toBlock: null };
+  if (screen) return { toScreen: toToken, toComponent: null };
 
-  throw new Error(`Unknown on target "${toToken}" for block "${sourceBlock}"`);
+  throw new Error(`Unknown on target "${toToken}" for component "${sourceComponent}"`);
 }
 
 export function buildTransitionGraph(doc) {
@@ -62,25 +72,25 @@ export function buildTransitionGraph(doc) {
         : s.id,
   }));
 
-  const blockIds = new Set();
+  const componentIds = new Set();
   for (const h of doc.handlers) {
-    blockIds.add(h.block);
-    if (h.toBlock) blockIds.add(h.toBlock);
+    componentIds.add(h.component);
+    if (h.toComponent) componentIds.add(h.toComponent);
   }
   for (const screen of doc.screens) {
-    for (const block of screen.blocks) {
-      if (block.id && isLayoutBoundBlock(block, screen, doc)) blockIds.add(block.id);
+    for (const comp of screen.components) {
+      if (isLayoutBoundComponent(comp, screen, doc)) componentIds.add(comp.id);
     }
   }
 
-  for (const blockId of blockIds) {
-    const host = screenForBlock(doc, blockId);
+  for (const componentId of componentIds) {
+    const host = screenForComponent(doc, componentId);
     nodes.push({
-      id: blockNodeId(blockId),
-      kind: "block",
-      blockId,
+      id: componentNodeId(componentId),
+      kind: "component",
+      componentId,
       host: host?.id ?? null,
-      label: blockId,
+      label: componentId,
     });
   }
 
@@ -98,15 +108,15 @@ export function buildTransitionGraph(doc) {
   }
 
   for (const h of doc.handlers) {
-    const from = blockNodeId(h.block);
-    const to = h.toBlock ? blockNodeId(h.toBlock) : (h.toScreen ?? h.to);
+    const from = componentNodeId(h.component);
+    const to = h.toComponent ? componentNodeId(h.toComponent) : (h.toScreen ?? h.to);
     edges.push({
-      id: `on:${h.block}:${h.event}:${h.target}:${to}`,
+      id: `on:${h.component}:${h.event}:${h.target}:${to}`,
       from,
       to,
       label: `${h.event} · ${h.target}`,
       kind: "on",
-      block: h.block,
+      component: h.component,
       event: h.event,
       target: h.target,
       then: h.then,
