@@ -1,6 +1,6 @@
 /** Federation presentation topology lines → screen.deck IR (alignment only). */
 
-import { deckPresetToScreenDeck } from "../../parser/gdl-ir.js";
+import { deckPresetToScreenDeck, expandDeckZoneList } from "../../parser/gdl-ir.js";
 
 const MFD_PAGE_LINE = /^mfd-page\s*$/i;
 const PRESET_LINE = /^preset\s+(\S+)\s*$/i;
@@ -12,16 +12,16 @@ const MFD_TABS_LINE = /^mfd-tabs\s+(.+)$/i;
 const SPLIT_LINE = /^split\s+(\S+)\s*$/i;
 const DOCK_LINE = /^dock\s+(\S+)\s*$/i;
 const EICAS_LINE = /^eicas\s+(\S+)\s*$/i;
+const PFD_LINE = /^pfd\s+(.+)$/i;
 
-/** report-author MFD tab id → zone id */
-const REPORT_AUTHOR_TAB_ZONES = {
-  Project: "spec-tree",
-  Sources: "environment-readiness",
-  SQL: "data-lab",
-  Pad: "script-pad",
-  Preview: "report-preview",
-  Layout: "layout-board",
-};
+/** @param {string} token */
+function parseMfdTabToken(token) {
+  const colon = token.indexOf(":");
+  if (colon >= 0) {
+    return { tab: token.slice(0, colon).trim(), zone: token.slice(colon + 1).trim() };
+  }
+  return { tab: token, zone: token.trim().toLowerCase().replace(/\s+/g, "-") };
+}
 
 export function parseScreenLine(screen, trimmed, doc = null) {
   let m;
@@ -56,7 +56,7 @@ export function parseScreenLine(screen, trimmed, doc = null) {
 
   if ((m = trimmed.match(FORWARD_LINE))) {
     ensureDeck(screen);
-    screen.deck.forward = m[1].split(/\s+/).filter(Boolean);
+    screen.deck.forward = m[1].split(/\s*\|\s*/).map((s) => s.trim()).filter(Boolean);
     return true;
   }
 
@@ -68,7 +68,12 @@ export function parseScreenLine(screen, trimmed, doc = null) {
 
   if ((m = trimmed.match(MFD_TABS_LINE))) {
     ensureDeck(screen);
-    screen.deck.mfdTabs = m[1].split("|").map((s) => s.trim()).filter(Boolean);
+    screen.deck.mfdTabBindings = m[1]
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map(parseMfdTabToken);
+    screen.deck.mfdTabs = screen.deck.mfdTabBindings.map((b) => b.tab);
     return true;
   }
 
@@ -90,6 +95,12 @@ export function parseScreenLine(screen, trimmed, doc = null) {
     return true;
   }
 
+  if ((m = trimmed.match(PFD_LINE))) {
+    ensureDeck(screen);
+    screen.deck.pfdChips = m[1].split("|").map((s) => s.trim()).filter(Boolean);
+    return true;
+  }
+
   return false;
 }
 
@@ -97,15 +108,12 @@ export function deckZoneIdsFromScreen(screen) {
   const deck = screen.deck;
   if (!deck) return [];
   const ids = new Set();
-  for (const z of deck.forward ?? []) ids.add(z);
-  for (const z of deck.mfdSlots ?? []) ids.add(z);
+  for (const z of expandDeckZoneList(deck.forward)) ids.add(z);
+  for (const z of expandDeckZoneList(deck.mfdSlots)) ids.add(z);
   if (deck.forwardDock) ids.add(deck.forwardDock);
   if (deck.mfdSplit) ids.add(deck.mfdSplit);
   if (deck.eicas) ids.add(deck.eicas);
-  for (const tab of deck.mfdTabs ?? []) {
-    const zone = REPORT_AUTHOR_TAB_ZONES[tab];
-    if (zone) ids.add(zone);
-  }
+  for (const binding of deck.mfdTabBindings ?? []) ids.add(binding.zone);
   return [...ids];
 }
 
@@ -117,10 +125,11 @@ function ensureDeck(screen) {
       forward: [],
       mfdSlots: [],
       mfdTabs: [],
+      mfdTabBindings: [],
       mfdSplit: null,
       forwardDock: null,
       eicas: null,
+      pfdChips: [],
     };
   }
 }
-

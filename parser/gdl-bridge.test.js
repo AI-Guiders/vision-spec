@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseCatalogViaBridge, parseDeckViaBridge } from "./gdl-bridge.js";
 import { wrapCatalogDocument, wrapDeckDocument } from "./gdl-router.js";
-import { paletteRowsFromCatalog, deckPresetToScreenDeck } from "./gdl-ir.js";
+import { paletteRowsFromCatalog, deckPresetToScreenDeck, expandDeckZoneList } from "./gdl-ir.js";
 import { composeVisionFile } from "./vision-compose.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -56,6 +56,21 @@ test("VisionGdlBridge parses deck via federation DeckParser", () => {
   assert.deepEqual(deck.diagnostics, []);
   const screenDeck = deckPresetToScreenDeck(deck, "report-author");
   assert.deepEqual(screenDeck?.mfdSlots, ["spec-tree", "editor"]);
+  assert.deepEqual(expandDeckZoneList(["ccl | editor"]), ["ccl", "editor"]);
+});
+
+
+test("deckPresetToScreenDeck splits pipe-separated forward zones from GDL bridge", () => {
+  const deck = parseDeckViaBridge(wrapDeckDocument("dashspec-studio", [
+    "preset report-author",
+    "  topology (MFD)(F)",
+    "  forward ccl | editor",
+    "  mfd spec-tree",
+    "  eicas resolve",
+    "end preset",
+  ]));
+  const screenDeck = deckPresetToScreenDeck(deck, "report-author");
+  assert.deepEqual(screenDeck?.forward, ["ccl", "editor"]);
 });
 
 test("parseVision routes inline GDL through federation bridge", async () => {

@@ -41,7 +41,7 @@ end catalog
 deck dashspec-studio
 preset report-author
   topology (MFD)(F)
-  forward editor
+  forward ccl | editor
   mfd spec-tree
   eicas resolve
 end preset
@@ -49,14 +49,16 @@ end deck
 
 screen studio
   use-deck report-author
+  pfd demo-soak | main
   dock data-lab
+  component ccl search
   component editor tabs
   component data-lab repl
 
 screen studio-mfd
   mfd-page
   use-deck report-author
-  mfd-tabs Project | Sources | Pad | Preview | Layout
+  mfd-tabs Project:spec-tree | Sources:environment-readiness | Pad:script-pad | Preview:report-preview | Layout:layout-board
   component spec-tree tree
   component environment-readiness panel
   component script-pad pad

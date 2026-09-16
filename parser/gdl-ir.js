@@ -2,7 +2,16 @@
  * Vision IR helpers — map federation parser JSON to player / deck plugin shapes.
  */
 
-/** @param {Record<string, string>} row */
+/** Split GDL wire tokens like "ccl | editor" into deck zone ids. */
+export function expandDeckZoneList(zones) {
+  return (zones ?? []).flatMap((z) =>
+    String(z)
+      .split(/\s*\|\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+}
+
 function rowGet(row, key) {
   return row?.[key] ?? row?.[key.toLowerCase()] ?? "";
 }
@@ -48,8 +57,8 @@ export function deckPresetToScreenDeck(deck, presetName) {
   return {
     preset: preset.name,
     topology: preset.topology,
-    forward: preset.forward ?? [],
-    mfdSlots: preset.mfdSlots ?? [],
+    forward: expandDeckZoneList(preset.forward),
+    mfdSlots: expandDeckZoneList(preset.mfdSlots),
     mfdTabs: preset.mfdTabs,
     mfdSplit: preset.mfdSplit,
     eicas: preset.eicas,

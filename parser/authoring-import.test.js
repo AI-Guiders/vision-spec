@@ -44,7 +44,8 @@ test("glob expands component and registry pack files", () => {
   const componentPaths = expandLogicalPattern(root, "authoring/components/*.vision");
   assert.ok(componentPaths.includes("authoring/components/spec-tree.vision"));
   assert.ok(componentPaths.includes("authoring/components/data-lab.vision"));
-  assert.equal(componentPaths.length, 5);
+  assert.ok(componentPaths.includes('authoring/components/ccl.vision'));
+  assert.equal(componentPaths.length, 6);
   assert.ok(componentPaths.includes("authoring/components/environment-readiness.vision"));
   assert.ok(componentPaths.includes("authoring/components/layout-board.vision"));
 
@@ -90,3 +91,4 @@ test("composeVisionProject loads dashspec-studio via manifest", async () => {
   assert.equal(doc.id, "dashspec-studio");
   assert.equal(doc.screens.length, 3);
 });
+

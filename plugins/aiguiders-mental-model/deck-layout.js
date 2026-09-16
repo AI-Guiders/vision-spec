@@ -48,13 +48,24 @@ export function forwardStackGridStyle(deck) {
   };
 }
 
-export function forwardBodyStyle(deck) {
+export function forwardBodyStyle(deck, zonePlacementHint = () => null) {
   const zones = deck.forward?.length ? deck.forward : ["editor"];
   if (zones.length <= 1) {
     return {
       minHeight: "0",
       display: "flex",
       flexDirection: "column",
+      gap: "8px",
+      overflow: "hidden",
+    };
+  }
+  const autoRows = zones.map((z) => zonePlacementHint(z)?.stackRow === "auto");
+  if (autoRows.some(Boolean)) {
+    return {
+      minHeight: "0",
+      display: "grid",
+      gridTemplateRows: autoRows.map((auto) => (auto ? "auto" : "minmax(0, 1fr)")).join(" "),
+      gridTemplateColumns: "1fr",
       gap: "8px",
       overflow: "hidden",
     };
@@ -68,9 +79,9 @@ export function forwardBodyStyle(deck) {
   };
 }
 
-export function mfdRowStyle(deck, tabs, tabZoneMap) {
-  const sqlZone = tabZoneMap.SQL ?? "data-lab";
-  const hasSplit = Boolean(deck.mfdSplit && tabs.includes("SQL") && sqlZone !== deck.mfdSplit);
+export function mfdRowStyle(deck, tabBindings = []) {
+  const tabZones = new Set(tabBindings.map((b) => b.zone));
+  const hasSplit = Boolean(deck.mfdSplit && !tabZones.has(deck.mfdSplit));
   if (!hasSplit) {
     return {
       flex: "1 1 0",
@@ -114,6 +125,8 @@ export function mfdTabPanelStyle() {
 
 export function zonePlacementStyle(bandClass) {
   switch (bandClass) {
+    case "forward-ccl":
+      return { flex: "0 0 auto", minHeight: "0", minWidth: "0" };
     case "forward":
       return { flex: "1 1 0", minHeight: "0", minWidth: "0" };
     case "forward-dock":

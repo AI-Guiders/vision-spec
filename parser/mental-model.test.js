@@ -17,13 +17,15 @@ test("mental-model plugin parses federation cockpit deck lines", async () => {
   assert.ok(studio?.deck);
   assert.equal(studio.deck.preset, "report-author");
   assert.equal(studio.deck.topology, "(MFD)(F)");
-  assert.deepEqual(studio.deck.forward, ["editor"]);
+  assert.deepEqual(studio.deck.forward, ["ccl", "editor"]);
   assert.deepEqual(studio.deck.mfdSlots, ["spec-tree"]);
   assert.equal(studio.deck.eicas, "resolve");
   assert.equal(studio.mfdPage, undefined);
   assert.equal(studio.deck.forwardDock, "data-lab");
+  assert.deepEqual(studio.deck.pfdChips, ["demo-soak", "main"]);
   assert.equal(mfd?.mfdPage, true);
   assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "Pad", "Preview", "Layout"]);
+  assert.deepEqual(mfd?.deck?.mfdTabBindings?.map((b) => b.zone), ["spec-tree", "environment-readiness", "script-pad", "report-preview", "layout-board"]);
   assert.equal(mfd?.deck?.mfdSplit, undefined);
 });
 

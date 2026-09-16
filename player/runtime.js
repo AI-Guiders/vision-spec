@@ -7,6 +7,7 @@ import {
   parseReadinessFixtureLines,
   renderEnvironmentReadinessPage,
 } from "./environment-readiness-page.js";
+import { renderCclBar } from "./ccl-bar.js";
 import { renderLayoutBoard, resetLayoutBoardSessions } from "./layout-board.js";
 import {
   colorTokenCssVar,
@@ -289,6 +290,8 @@ function renderScreen(screen, isOverlay) {
           return comp ? renderComponent(comp, screen) : null;
         },
         labelForZone: zoneLabel,
+        deckBandForZone: (zoneId) => doc.presentations?.[zoneId]?.deckBand ?? null,
+        zonePlacementHint: (zoneId) => doc.presentations?.[zoneId] ?? null,
       });
       if (deckRoot) {
         root.appendChild(deckRoot);
@@ -376,7 +379,13 @@ function renderComponent(comp, screen) {
       body.innerHTML = `<div class="preview-placeholder">Preview sketch<br/><span class="muted">${comp.id}</span></div>`;
       break;
     case "search":
-      body.innerHTML = `<input class="search-input" placeholder="Search or run command…" />`;
+      if (doc.presentations?.[comp.id]?.renderAs === "ccl-bar") {
+        wrap.classList.add("ccl-panel");
+        title.remove();
+        renderCclBar(body);
+      } else {
+        body.innerHTML = `<input class="search-input" placeholder="Search or run command…" />`;
+      }
       break;
     case "command-list":
       renderCommandList(body);
@@ -443,6 +452,7 @@ function zoneLabel(zoneId) {
     "data-lab": "SQL Browser",
     "script-pad": "Script Pad",
     "layout-board": "Layout board",
+    ccl: "Command line",
     resolve: "Project issues",
     palette: "Command palette",
   };

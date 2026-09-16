@@ -3,6 +3,7 @@
 components dashspec-studio
   table zone
   | id                   | kind    | label                  |
+  | ccl                  | search  | Command line           |
   | environment-readiness | panel   | Environment readiness  |
   | data-lab             | repl    | SQL Browser            |
   | script-pad           | pad     | Script Pad             |

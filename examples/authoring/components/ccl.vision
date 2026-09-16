@@ -1,0 +1,6 @@
+presentation ccl
+  label "Command line"
+  deck-band forward-ccl
+  stack-row auto
+  render-as ccl-bar
+end presentation

@@ -44,8 +44,8 @@ const LABEL_LINE = /^label\s+"([^"]*)"\s*$/i;
 
 /** @param {string[]} body @param {string} defaultLibrary */
 function parsePresentationBody(body, defaultLibrary) {
-  /** @type {{ label: string | null, kinds: { kind: string, icon: ReturnType<typeof parseIconRef>, colorToken: string }[] }} */
-  const pres = { label: null, kinds: [] };
+  /** @type {{ label: string | null, deckBand: string | null, stackRow: string | null, renderAs: string | null, kinds: { kind: string, icon: ReturnType<typeof parseIconRef>, colorToken: string }[] }} */
+  const pres = { label: null, deckBand: null, stackRow: null, renderAs: null, kinds: [] };
   const lines = body.map((l) => l.trimEnd());
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
@@ -53,6 +53,21 @@ function parsePresentationBody(body, defaultLibrary) {
     const labelMatch = trimmed.match(LABEL_LINE);
     if (labelMatch) {
       pres.label = labelMatch[1];
+      continue;
+    }
+    const deckBandMatch = trimmed.match(/^deck-band\s+(\S+)\s*$/i);
+    if (deckBandMatch) {
+      pres.deckBand = deckBandMatch[1];
+      continue;
+    }
+    const stackRowMatch = trimmed.match(/^stack-row\s+(auto|flex)\s*$/i);
+    if (stackRowMatch) {
+      pres.stackRow = stackRowMatch[1];
+      continue;
+    }
+    const renderAsMatch = trimmed.match(/^render-as\s+(\S+)\s*$/i);
+    if (renderAsMatch) {
+      pres.renderAs = renderAsMatch[1];
       continue;
     }
     if (/^table\s+kind\s*$/i.test(trimmed)) {

@@ -554,6 +554,25 @@ select, .file-btn, button.file-btn {
   min-height: 0;
 }
 
+.deck-zone.forward-ccl {
+  border: none;
+  background: transparent;
+  overflow: visible;
+}
+
+.deck-zone.forward-ccl .deck-zone-cap {
+  display: none;
+}
+
+.deck-zone.forward-ccl .deck-zone-body {
+  padding: 0;
+  overflow: visible;
+}
+
+.deck-zone.forward-ccl .sketch-block {
+  overflow: visible;
+}
+
 .deck-zone-cap {
   font-size: 0.7rem;
   color: var(--accent);

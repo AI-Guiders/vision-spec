@@ -21,14 +21,13 @@ test("forward body grid columns follow forward zone count", () => {
   assert.match(two.gridTemplateColumns, /repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
-test("mfd row split columns from deck.mfdSplit + SQL tab", () => {
-  const split = mfdRowStyle(
-    { mfdSplit: "resolve" },
-    ["Project", "SQL", "Pad"],
-    { SQL: "data-lab" },
-  );
+test("mfd row split when split zone is not a tab zone", () => {
+  const split = mfdRowStyle({ mfdSplit: "resolve" }, [
+    { tab: "Project", zone: "spec-tree" },
+    { tab: "SQL", zone: "data-lab" },
+  ]);
   assert.equal(split.gridTemplateColumns, "minmax(0, 1fr) auto");
-  const noSplit = mfdRowStyle({ mfdSplit: "data-lab" }, ["Project", "Pad"], { SQL: "data-lab" });
+  const noSplit = mfdRowStyle({ mfdSplit: "spec-tree" }, [{ tab: "Project", zone: "spec-tree" }]);
   assert.equal(noSplit.display, "flex");
 });
 
