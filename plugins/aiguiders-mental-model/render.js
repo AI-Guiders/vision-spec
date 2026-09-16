@@ -42,9 +42,10 @@ export function renderDeckScreen(screen, helpers) {
   root.appendChild(cockpit);
 
   if (screen.mfdPage) {
-    root.appendChild(renderMfdBand(deck, helpers));
+    root.appendChild(renderMfdBand(deck, screen, helpers));
   } else {
-    root.appendChild(renderForwardBand(deck, helpers));
+    renderForwardCcl(root, deck, screen, helpers);
+    root.appendChild(renderForwardBand(deck, screen, helpers));
   }
 
   if (deck.eicas) {
@@ -58,9 +59,27 @@ export function renderDeckScreen(screen, helpers) {
   return root;
 }
 
-function renderForwardBand(deck, helpers) {
+function screenZoneIds(screen) {
+  return new Set((screen.components ?? []).map((c) => c.id));
+}
+
+function forwardZonesForScreen(deck, screen) {
+  return (deck.forward ?? ["editor"]).filter((zoneId) => screenZoneIds(screen).has(zoneId));
+}
+
+/** CCL lives on Forward screen only — rendered once between cockpit and primary work band. */
+function renderForwardCcl(root, deck, screen, helpers) {
+  const zones = forwardZonesForScreen(deck, screen);
+  if (!zones.includes("ccl")) return;
+  const { renderZone, labelForZone, deckBandForZone } = helpers;
+  const bandFor = (zoneId, fallback) => deckBandForZone?.(zoneId) ?? fallback;
+  root.appendChild(wrapZone("ccl", bandFor("ccl", "forward-ccl"), renderZone, labelForZone, bandFor("ccl", "forward-ccl")));
+}
+
+function renderForwardBand(deck, screen, helpers) {
   const { renderZone, labelForZone, deckBandForZone, zonePlacementHint } = helpers;
   const bandFor = (zoneId, fallback) => deckBandForZone?.(zoneId) ?? fallback;
+  const zones = forwardZonesForScreen(deck, screen).filter((z) => z !== "ccl");
 
   const forward = document.createElement("div");
   forward.className = "deck-forward deck-forward-primary";
@@ -73,8 +92,8 @@ function renderForwardBand(deck, helpers) {
 
   const forwardBody = document.createElement("div");
   forwardBody.className = "deck-forward-body";
-  applyDeckStyle(forwardBody, forwardBodyStyle(deck, zonePlacementHint));
-  for (const zoneId of deck.forward ?? ["editor"]) {
+  applyDeckStyle(forwardBody, forwardBodyStyle({ ...deck, forward: zones.length ? zones : ["editor"] }, zonePlacementHint));
+  for (const zoneId of zones.length ? zones : ["editor"]) {
     forwardBody.appendChild(
       wrapZone(zoneId, bandFor(zoneId, "forward"), renderZone, labelForZone, bandFor(zoneId, "forward")),
     );
@@ -94,7 +113,7 @@ function renderForwardBand(deck, helpers) {
   return forward;
 }
 
-function renderMfdBand(deck, helpers) {
+function renderMfdBand(deck, screen, helpers) {
   const { renderZone, labelForZone, deckBandForZone } = helpers;
   const bandFor = (zoneId, fallback) => deckBandForZone?.(zoneId) ?? fallback;
   const bindings = mfdTabBindings(deck);

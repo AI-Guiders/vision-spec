@@ -25,7 +25,6 @@ const exampleSelect = document.getElementById("example-select");
 const fileInput = document.getElementById("file-input");
 const projectOpenBtn = document.getElementById("project-open-btn");
 const projectDirInput = document.getElementById("project-dir-input");
-const projectHint = document.getElementById("project-hint");
 const viewModeSelect = document.getElementById("view-mode");
 
 /** @type {ReturnType<parseVision> | null} */
@@ -191,7 +190,7 @@ function finishLoad(loaded) {
   titleEl.textContent = doc.title || doc.id;
   currentScreenId = entryScreen(doc).id;
   overlayScreenId = null;
-  logList.innerHTML = "";
+  if (logList) logList.innerHTML = "";
   render();
   log(`Loaded vision ${doc.id}`);
   if (viewMode === "sketch") stage.focus();
@@ -829,6 +828,7 @@ function fireHandler(component, event, target, detail) {
 }
 
 function log(message) {
+  if (!logList) return;
   const li = document.createElement("li");
   li.textContent = message;
   logList.prepend(li);

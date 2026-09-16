@@ -27,6 +27,7 @@ test("mental-model plugin parses federation cockpit deck lines", async () => {
   assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "Pad", "Preview", "Layout"]);
   assert.deepEqual(mfd?.deck?.mfdTabBindings?.map((b) => b.zone), ["spec-tree", "environment-readiness", "script-pad", "report-preview", "layout-board"]);
   assert.equal(mfd?.deck?.mfdSplit, undefined);
+  assert.deepEqual(mfd?.deck?.forward, [], "MFD screen inherits preset without studio forward ccl line");
 });
 
 test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {

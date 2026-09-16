@@ -26,7 +26,7 @@ body {
   height: 100vh;
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   background: var(--bg);
   color: var(--text);
   overflow: hidden;
@@ -55,14 +55,6 @@ body {
 
 .toolbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-.project-hint {
-  flex: 1 1 100%;
-  margin: 0;
-  padding: 0 16px 8px;
-  font-size: 0.82rem;
-}
-
-.project-hint code { font-size: 0.9em; }
 
 select, .file-btn, button.file-btn {
   background: var(--panel);
@@ -916,10 +908,7 @@ select, .file-btn, button.file-btn {
 
 
 .log {
-  border-top: 1px solid var(--border);
-  padding: 8px 16px 12px;
-  max-height: 140px;
-  overflow: auto;
+  display: none;
 }
 
 .log-label {
