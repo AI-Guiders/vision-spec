@@ -6,7 +6,7 @@
   "description": "Agent-native vision alignment — text screens, sketch web player",
   "scripts": {
     "build:bridge": "dotnet build tools/VisionGdlBridge/VisionGdlBridge.fsproj",
-    "test": "npm run build:bridge && node --test parser/parser.test.js parser/graph.test.js parser/mental-model.test.js parser/deck-layout.test.js parser/layout-board-placer.test.js parser/gdl-bridge.test.js parser/vision-dot.test.js parser/component-model.test.js parser/authoring-import.test.js parser/vision-project.test.js player/environment-readiness-page.test.js",
+    "test": "npm run build:bridge && node --test parser/parser.test.js parser/graph.test.js parser/mental-model.test.js parser/deck-layout.test.js parser/layout-board-placer.test.js parser/gdl-bridge.test.js parser/vision-dot.test.js parser/component-model.test.js parser/vision-api.test.js parser/authoring-import.test.js parser/vision-project.test.js player/environment-readiness-page.test.js",
     "play": "npm run build:bridge && node scripts/vision-play-server.mjs"
   },
   "license": "MIT",
@@ -14,5 +14,11 @@
     "@viz-js/viz": "^3.30.0",
     "@vscode/codicons": "^0.0.36",
     "svg-pan-zoom": "^3.6.2"
+  },
+  "exports": {
+    ".": "./parser/vision-api.js",
+    "./parser": "./parser/vision-api.js",
+    "./parser/compose": "./parser/vision-compose.js",
+    "./parser/project": "./parser/vision-project.js"
   }
 }
