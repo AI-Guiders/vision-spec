@@ -3,7 +3,6 @@ import { paletteRowsFromCatalog } from "../parser/gdl-ir.js";
 import { isLayoutBoundComponent } from "../parser/vision-graph.js";
 import { fixtureKeylines, fixtureTreeNodes } from "../parser/fixture-parse.js";
 import { resolvePlugins } from "../parser/plugins.js";
-import { renderTransitionGraph } from "./transition-graph.js";
 import {
   parseReadinessFixtureLines,
   renderEnvironmentReadinessPage,
@@ -58,7 +57,12 @@ async function init() {
   overlayRoot.addEventListener("keydown", onKeyDown);
 
   try {
-    await loadUrl(exampleSelect.value);
+    await window.__VISION_BOOT__?.catch(() => {});
+    if (window.__VISION_INITIAL_DOC__) {
+      finishLoad(window.__VISION_INITIAL_DOC__);
+    } else {
+      await loadUrl(exampleSelect.value);
+    }
   } catch (err) {
     showLoadError(err);
   }
@@ -214,6 +218,31 @@ async function loadText(source, fileName = "") {
   finishLoad(doc);
 }
 
+
+async function renderGraphView() {
+  const { renderTransitionGraph } = await import("./transition-graph.js");
+  const graphWrap = renderTransitionGraph(doc, {
+    activeScreenId: currentScreenId,
+    overlayScreenId,
+    onSelectScreen: (id) => {
+      const screen = doc.screens.find((s) => s.id === id);
+      if (screen?.overlay) {
+        overlayScreenId = id;
+      } else {
+        currentScreenId = id;
+        overlayScreenId = null;
+      }
+      viewMode = "sketch";
+      viewModeSelect.value = "sketch";
+      render();
+      log(`Graph → sketch: ${id}`);
+      stage.focus();
+    },
+  });
+  stage.appendChild(graphWrap);
+  void graphWrap.initGraph();
+}
+
 function render() {
   stage.firstChild?.destroyGraph?.();
   stage.innerHTML = "";
@@ -227,26 +256,7 @@ function render() {
   stage.classList.toggle("stage-sketch", viewMode !== "graph");
 
   if (viewMode === "graph") {
-    const graphWrap = renderTransitionGraph(doc, {
-      activeScreenId: currentScreenId,
-      overlayScreenId,
-      onSelectScreen: (id) => {
-        const screen = doc.screens.find((s) => s.id === id);
-        if (screen?.overlay) {
-          overlayScreenId = id;
-        } else {
-          currentScreenId = id;
-          overlayScreenId = null;
-        }
-        viewMode = "sketch";
-        viewModeSelect.value = "sketch";
-        render();
-        log(`Graph → sketch: ${id}`);
-        stage.focus();
-      },
-    });
-    stage.appendChild(graphWrap);
-    void graphWrap.initGraph();
+    void renderGraphView();
     return;
   }
 
