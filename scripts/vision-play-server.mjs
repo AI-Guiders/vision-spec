@@ -69,7 +69,6 @@ const server = http.createServer(async (req, res) => {
       }
       const doc = await composeVisionFromMap(entry, files, {
         projectRoot: projectRoot ?? "",
-        gdlEndpoint: "/__vision/gdl",
         strict: false,
       });
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -89,7 +88,7 @@ const server = http.createServer(async (req, res) => {
         res.end("Forbidden");
         return;
       }
-      const doc = await composeVisionFile(fullPath, { gdlEndpoint: "/__vision/gdl" });
+      const doc = await composeVisionFile(fullPath);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(doc));
     } catch (err) {
