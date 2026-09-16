@@ -361,17 +361,12 @@ select, .file-btn, button.file-btn {
 
 
 
-/* Federation deck layout (aiguiders-mental-model plugin) */
+/* Federation deck — band sizing from screen.deck IR inline (deck-layout.js); CSS = chrome only */
 .deck-screen {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  gap: 4px;
+  /* fill chain applied inline by mental-model render */
 }
 
 .deck-cockpit {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -462,6 +457,17 @@ select, .file-btn, button.file-btn {
   display: none;
 }
 
+.deck-forward-primary,
+.deck-forward-stack,
+.deck-forward-body,
+.deck-mfd-page,
+.deck-mfd-row,
+.deck-mfd-main,
+.deck-mfd-tab-panels,
+.deck-mfd-tab-panel {
+  /* band grid/flex from deck IR inline */
+}
+
 .deck-band-label {
   font-size: 0.65rem;
   text-transform: uppercase;
@@ -470,28 +476,6 @@ select, .file-btn, button.file-btn {
   padding: 2px 6px;
 }
 
-.deck-forward-primary {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.deck-forward-primary .deck-forward-stack {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  flex: 1 1 0;
-  min-height: 0;
-  gap: 8px;
-  overflow: hidden;
-}
-
-.deck-forward-primary .deck-forward-body {
-  min-height: 0;
-  display: flex;
-  gap: 8px;
-  overflow: hidden;
-}
 
 .deck-screen-forward .deck-mfd {
   display: none;
@@ -501,12 +485,6 @@ select, .file-btn, button.file-btn {
   display: none;
 }
 
-.deck-mfd-page {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
 
 .deck-nav-hint {
   flex: 0 0 auto;
@@ -516,20 +494,6 @@ select, .file-btn, button.file-btn {
   border-top: 1px dashed var(--border);
 }
 
-.deck-forward {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 0;
-}
-
-.deck-mfd {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 0;
-}
 
 .deck-mfd-tabs {
   display: flex;
@@ -557,47 +521,6 @@ select, .file-btn, button.file-btn {
   cursor: not-allowed;
 }
 
-.deck-mfd-tab-panels {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.deck-mfd-tab-panel {
-  flex: 1;
-  min-height: 0;
-}
-
-.deck-mfd-project-row {
-  display: flex;
-  gap: 8px;
-  flex: 1 1 0;
-  min-height: 0;
-}
-
-.deck-mfd-row {
-  flex: 1;
-  display: flex;
-  gap: 8px;
-  min-height: 0;
-}
-
-.deck-mfd-main {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-
-.deck-eicas {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 0;
-}
 
 .deck-zone {
   display: flex;
@@ -610,10 +533,7 @@ select, .file-btn, button.file-btn {
   overflow: hidden;
 }
 
-.deck-zone.forward { flex: 1 1 0; min-height: 0; }
-.deck-zone.forward-dock {
-  min-height: 0;
-}
+
 .deck-zone.forward-dock .deck-zone-cap {
   font-size: 0.68rem;
   color: var(--muted);
@@ -628,11 +548,6 @@ select, .file-btn, button.file-btn {
   padding: 0;
   min-height: 0;
 }
-.deck-zone.mfd-narrow { flex: 0 0 16rem; min-width: 0; }
-.deck-zone.mfd-wide { flex: 1 1 0; min-width: 0; }
-.deck-zone.mfd-split { flex: 0 0 18rem; min-width: 0; }
-.deck-zone.mfd-tab-fill { flex: 1 1 0; min-height: 0; }
-.deck-zone.eicas { flex: 1; min-height: 48px; }
 
 .deck-zone-cap {
   font-size: 0.7rem;

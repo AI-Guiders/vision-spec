@@ -1,7 +1,22 @@
 /**
  * Federation cockpit sketch (GUIDERS ADR-0021 / STUDIO ADR-0002):
  * PFD = orientation · Forward = primary work · MFD = secondary instruments (separate screen).
+ * Band sizing from screen.deck IR inline — DashSpec ADR-0002 host placement pattern.
  */
+
+import {
+  applyDeckStyle,
+  deckBandAutoStyle,
+  deckPrimaryBandStyle,
+  deckScreenShellStyle,
+  forwardBodyStyle,
+  forwardStackGridStyle,
+  mfdMainStyle,
+  mfdRowStyle,
+  mfdTabPanelStyle,
+  mfdTabPanelsStyle,
+  zonePlacementStyle,
+} from "./deck-layout.js";
 
 const REPORT_AUTHOR_TABS = [
   { id: "Project", label: "Project" },
@@ -29,8 +44,11 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   root.className = "deck-screen" + (screen.mfdPage ? " deck-screen-mfd" : " deck-screen-forward");
   root.dataset.preset = deck.preset ?? "";
   root.dataset.topology = deck.topology ?? "";
+  applyDeckStyle(root, deckScreenShellStyle());
 
-  root.appendChild(renderCockpit(deck));
+  const cockpit = renderCockpit(deck);
+  applyDeckStyle(cockpit, deckBandAutoStyle());
+  root.appendChild(cockpit);
 
   if (screen.mfdPage) {
     root.appendChild(renderMfdBand(deck, renderZone, labelForZone));
@@ -41,6 +59,7 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   if (deck.eicas) {
     const eicas = document.createElement("div");
     eicas.className = "deck-eicas deck-eicas-quiet";
+    applyDeckStyle(eicas, deckBandAutoStyle());
     eicas.appendChild(wrapZone(deck.eicas, "eicas", renderZone, labelForZone));
     root.appendChild(eicas);
   }
@@ -51,13 +70,16 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
 function renderForwardBand(deck, renderZone, labelForZone) {
   const forward = document.createElement("div");
   forward.className = "deck-forward deck-forward-primary";
+  applyDeckStyle(forward, deckPrimaryBandStyle());
   forward.appendChild(bandLabel("Forward · primary work"));
 
   const stack = document.createElement("div");
   stack.className = "deck-forward-stack";
+  applyDeckStyle(stack, forwardStackGridStyle(deck));
 
   const forwardBody = document.createElement("div");
   forwardBody.className = "deck-forward-body";
+  applyDeckStyle(forwardBody, forwardBodyStyle(deck));
   for (const zoneId of deck.forward ?? ["editor"]) {
     forwardBody.appendChild(wrapZone(zoneId, "forward", renderZone, labelForZone));
   }
@@ -68,21 +90,28 @@ function renderForwardBand(deck, renderZone, labelForZone) {
   }
 
   forward.appendChild(stack);
-  forward.appendChild(renderNavHint("F12 → MFD instruments"));
+  const hint = renderNavHint("F12 → MFD instruments");
+  applyDeckStyle(hint, deckBandAutoStyle());
+  forward.appendChild(hint);
   return forward;
 }
 
 function renderMfdBand(deck, renderZone, labelForZone) {
   const mfd = document.createElement("div");
   mfd.className = "deck-mfd deck-mfd-page";
+  applyDeckStyle(mfd, deckPrimaryBandStyle());
   mfd.appendChild(bandLabel("MFD · secondary instruments"));
-  mfd.appendChild(renderNavHint("F12 → Forward"));
+  const nav = renderNavHint("F12 → Forward");
+  applyDeckStyle(nav, deckBandAutoStyle());
+  mfd.appendChild(nav);
 
   const tabs = deck.mfdTabs?.length ? deck.mfdTabs : ["Project"];
   const tabBar = document.createElement("div");
   tabBar.className = "deck-mfd-tabs";
+  applyDeckStyle(tabBar, deckBandAutoStyle());
   const tabPanels = document.createElement("div");
   tabPanels.className = "deck-mfd-tab-panels";
+  applyDeckStyle(tabPanels, mfdTabPanelsStyle());
 
   let activeTab = tabs[0];
 
@@ -102,6 +131,7 @@ function renderMfdBand(deck, renderZone, labelForZone) {
     panel.className = "deck-mfd-tab-panel";
     panel.dataset.tabId = tabId;
     panel.hidden = tabId !== activeTab;
+    applyDeckStyle(panel, mfdTabPanelStyle());
 
     const zoneId = TAB_ZONE[tabId] ?? tabId.toLowerCase();
     panel.appendChild(wrapZone(zoneId, "mfd-tab-fill", renderZone, labelForZone));
@@ -127,8 +157,10 @@ function renderMfdBand(deck, renderZone, labelForZone) {
 
   const mfdRow = document.createElement("div");
   mfdRow.className = "deck-mfd-row";
+  applyDeckStyle(mfdRow, mfdRowStyle(deck, tabs, TAB_ZONE));
   const main = document.createElement("div");
   main.className = "deck-mfd-main";
+  applyDeckStyle(main, mfdMainStyle());
   main.appendChild(tabPanels);
   mfdRow.appendChild(main);
 
@@ -199,6 +231,7 @@ function bandLabel(text) {
   const el = document.createElement("div");
   el.className = "deck-band-label";
   el.textContent = text;
+  applyDeckStyle(el, deckBandAutoStyle());
   return el;
 }
 
@@ -206,6 +239,7 @@ function wrapZone(zoneId, bandClass, renderZone, labelForZone) {
   const wrap = document.createElement("div");
   wrap.className = `deck-zone ${bandClass}`;
   wrap.dataset.zoneId = zoneId;
+  applyDeckStyle(wrap, zonePlacementStyle(bandClass));
 
   const cap = document.createElement("div");
   cap.className = "deck-zone-cap";
