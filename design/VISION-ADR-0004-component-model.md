@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted |
 | **Date** | 2026-09-16 |
 | **Relates to** | [VISION-ADR-0001](./VISION-ADR-0001-charter.md) · [VISION-ADR-0002](./VISION-ADR-0002-plugin-model.md) · [VISION-ADR-0003](./VISION-ADR-0003-gdl-inline-sections.md) · [STUDIO-ADR-0002](https://github.com/AI-Guiders/dash-spec-studio/blob/main/design/STUDIO-ADR-0002-component-model-and-navigation.md) · GUIDERS-ADR-0055 |
 
@@ -84,34 +84,75 @@ Validation when registry present:
 - Every `component <id> <kind>` on a screen must match a registry row (`id` + `kind`).
 - Registry rows not declared on any screen are allowed (unused instruments).
 
-#### 2.3 Presentation (per component, optional)
+#### 2.3 Icon libraries (document + player registry)
 
-Visual alignment SSOT — icons, color tokens, operator-facing label override.
+Icons are **not** emoji, ASCII art, or inline SVG in `.vision`. Each icon is a reference into a named **icon library** (bundled icon source the player and, later, Studio resolve the same way).
+
+**Document defaults** (optional):
+
+```text
+defaults
+  icon.library = codicons
+end defaults
+```
+
+**Declared libraries** (optional overrides; player has built-in catalog):
+
+```text
+icon-libraries
+  codicons   source npm:@vscode/codicons
+  seti       source npm:vscode-icons-js
+end icon-libraries
+```
+
+| Field | Meaning |
+|-------|---------|
+| `<library-id>` | Stable name used in icon refs (`codicons`, `seti`, …) |
+| `source npm:<package>` | Player dependency + loader path (v1: `@vscode/codicons` required) |
+| `defaults icon.library` | Shorthand prefix when `icon` cell omits `library/` |
+
+**Icon reference grammar** (in presentation tables, registry, or component chrome):
+
+```text
+<library-id>/<icon-id>     # explicit — codicons/folder
+<icon-id>                  # shorthand — uses defaults icon.library
+```
+
+- **`codicons`** — VS Code UI icon font ([@vscode/codicons](https://www.npmjs.com/package/@vscode/codicons)). Sketch player loads `codicon.css` + `codicon.ttf` from the package; DOM: `<span class="codicon codicon-folder">`.
+- **`seti`** (optional v1.1) — file-type icon theme for extension-based glyphs (VS Code Seti / similar). Used when kind maps to a **file extension** rather than a DashSpec artifact kind. Loader TBD; IR stays `{ library, iconId }` so Studio can map to WPF `ImageSource` later.
+
+Player ships `player/icon-registry.js`: library id → `{ load(), render(library, iconId, el) }`. Unknown library/icon → parser warning + neutral `codicons/file` fallback in sketch.
+
+#### 2.4 Presentation (per component, optional)
+
+Visual alignment SSOT — **icon refs**, color tokens, operator-facing label override.
 
 ```text
 presentation spec-tree
   label "Project Browser"
   table kind
-  | kind         | icon | color-token           |
-  | folder       | 📁   | tree-folder           |
-  | dashspec     | ◆    | artifact-dashspec     |
-  | dashlibrary  | ▣    | artifact-dashlibrary  |
-  | dashlayout   | ▢    | artifact-dashlayout   |
-  | dashdiagram  | ▲    | artifact-dashdiagram  |
-  | dashpalette  | ■    | artifact-dashpalette  |
-  | dashcatalog  | ☰    | artifact-dashcatalog  |
-  | sql          | ⌗    | artifact-sql          |
-  | catalog-gdl  | ⚙    | artifact-catalog-gdl  |
+  | kind         | icon                  | color-token           |
+  | folder       | codicons/folder       | tree-folder           |
+  | dashspec     | codicons/file-code    | artifact-dashspec     |
+  | dashlibrary  | codicons/library      | artifact-dashlibrary  |
+  | dashlayout   | codicons/layout       | artifact-dashlayout   |
+  | dashdiagram  | codicons/graph        | artifact-dashdiagram  |
+  | dashpalette  | codicons/color-mode   | artifact-dashpalette  |
+  | dashcatalog  | codicons/list-tree    | artifact-dashcatalog  |
+  | sql          | codicons/database     | artifact-sql          |
+  | catalog-gdl  | codicons/gear         | artifact-catalog-gdl  |
 end presentation
 ```
 
 - **`table kind`** — artifact / node taxonomy (primarily for `tree` components).
 - **`color-token`** — maps to CSS custom properties in sketch player (`--artifact-dashspec`, …). Not hex in `.vision` (theme layer stays separate).
-- **`icon`** — sketch glyph (emoji or single char v1). Prod WPF maps the same kind → icon resource later.
+- **`icon`** — `{ library, iconId }` after parse; never a literal glyph in source.
+
+**Studio follow-up:** exported manifest carries the same `{ library, iconId }` pairs; WPF resolves via shared mapping table (Codicons font in Studio theme, or Fluent equivalent — separate PR).
 
 Presentation without `table kind` may still set `label` only.
 
-#### 2.4 Fixture (typed, keyed by component id)
+#### 2.5 Fixture (typed, keyed by component id)
 
 **Replaces** freeform box-drawing lines. Fixture id **must** equal component id when both exist.
 
@@ -137,7 +178,7 @@ end fixture
 ```
 
 - `<kind>` on `file` rows resolves through `presentation spec-tree` → `table kind`.
-- Unknown kind → parser warning; player falls back to neutral icon/token.
+- Unknown kind → parser warning; player falls back to `codicons/file` + neutral color token.
 - Nested `folder` mirrors STUDIO-ADR-0002 §4 illustrative shape (not necessarily live repo scan).
 
 **Non-tree fixtures** keep structured key lines (unchanged intent, explicit end):
@@ -155,7 +196,7 @@ fixture script-pad
 end fixture
 ```
 
-#### 2.5 Interactions (renamed target)
+#### 2.6 Interactions (renamed target)
 
 ```text
 on <component-id> <event> [<target>] -> <component-id|screen-id>
@@ -164,7 +205,7 @@ on <component-id> <event> [<target>] -> <component-id|screen-id>
 
 IR field `handler.block` → **`handler.component`**. Graph node id `block:<id>` → **`component:<id>`**.
 
-#### 2.6 Screen example (DashSpec Studio target)
+#### 2.7 Screen example (DashSpec Studio target)
 
 ```text
 screen studio
@@ -195,6 +236,8 @@ Note: `command-palette` screen uses component id `palette` (overlay; not a deck 
 
 ```javascript
 {
+  iconLibraries: [{ id, source }],  // optional; player has defaults
+  defaults: { iconLibrary: "codicons" },
   components: {                    // optional registry
     planetId: "dashspec-studio",
     rows: [{ id, kind, label }]
@@ -202,7 +245,7 @@ Note: `command-palette` screen uses component id `palette` (overlay; not a deck 
   presentations: {                 // keyed by component id
     "spec-tree": {
       label: "Project Browser",
-      kinds: [{ kind, icon, colorToken }]
+      kinds: [{ kind, icon: { library, iconId }, colorToken }]
     }
   },
   fixtures: {
@@ -228,7 +271,7 @@ Layout-only `row`/`col` live in `screen.layout[]`. Instrument lookup: `screen.co
 ### 4. Player behavior
 
 1. **Deck renderer** (`renderZone(zoneId)`) resolves **component** by id, not legacy block.
-2. **Tree renderer** walks typed fixture nodes; applies presentation kind → icon + CSS var.
+2. **Tree renderer** walks typed fixture nodes; resolves icon via **icon-registry** → codicon (or library) + CSS color token.
 3. **Zone caption** uses `presentation[id].label` → registry label → built-in fallback map → raw id.
 4. **Fixture badge** remains on sketch data regions; label text **`FIXTURE DATA`** (distinguishes sample content from component chrome).
 5. **Transition graph** clusters **components** inside screen clusters; node prefix `component:`.
@@ -237,11 +280,11 @@ Layout-only `row`/`col` live in `screen.layout[]`. Instrument lookup: `screen.co
 
 | Concern | Owner |
 |---------|--------|
-| `component`, `presentation`, typed `fixture`, `on`, `go` | **VisionSpec core** |
+| `component`, `presentation`, `icon-libraries`, typed `fixture`, `on`, `go` | **VisionSpec core** |
 | `forward`, `mfd`, `mfd-tabs`, `split`, `eicas`, `use-deck` | **`aiguiders-mental-model` plugin** |
 | DashSpec Studio zone ids + default registry rows | **planet `.vision`** (content), not a new npm plugin v1 |
 | Prod deck topology SSOT | inline `deck` + federation parse (ADR-0003) |
-| WPF icons/brushes | **dash-spec-studio** reads exported manifest (follow-up; out of this ADR scope) |
+| WPF `ImageSource` / theme brushes | **dash-spec-studio** resolves same `{ library, iconId }` manifest (follow-up PR) |
 
 ### 6. DashSpec Studio alignment
 
@@ -268,6 +311,7 @@ Future (separate ADR): emit `VisionComponentManifest.json` from `.vision` for St
 | `V-C005` | Fixture present but no matching component on any screen |
 | `V-C006` | `file` fixture kind unknown to presentation table (warning) |
 | `V-C007` | `on` references unknown component id |
+| `V-C008` | Unknown `icon` library or icon id (warning; strict mode → error) |
 
 Warnings do not fail parse in sketch mode; errors fail `npm test`.
 
@@ -290,15 +334,16 @@ Warnings do not fail parse in sketch mode; errors fail `npm test`.
 
 ### Implementation checklist (single vertical PR after ADR accepted)
 
-1. [ ] `design/VISION-ADR-0004-component-model.md` → **Accepted**
+1. [x] `design/VISION-ADR-0004-component-model.md` → **Accepted**
 2. [ ] Parser: `component`, `components`, `presentation`, typed `fixture`, IR migration
 3. [ ] `vision-graph.js` / `vision-dot.js`: `component:` nodes
 4. [ ] Player: `renderComponent`, tree presentation, zone labels from presentation
-5. [ ] `sketch.css`: `--artifact-*` tokens + tree row layout (icon + label + indent)
-6. [ ] Rewrite `examples/dashspec-studio.vision` + `minimal.vision`
-7. [ ] Rewrite tests (`parser.test.js`, `graph.test.js`, `mental-model.test.js`, `vision-dot.test.js`, fixture tests)
-8. [ ] `README.md` + `vision-v0.md` sync
-9. [ ] Cross-link from STUDIO-ADR-0002 → VISION-ADR-0004 (optional footnote PR in dash-spec-studio)
+5. [ ] `@vscode/codicons` dep + `player/icon-registry.js` + tree row layout (codicon + label + indent)
+6. [ ] `sketch.css`: `--artifact-*` color tokens
+7. [ ] Rewrite `examples/dashspec-studio.vision` + `minimal.vision`
+8. [ ] Rewrite tests (`parser.test.js`, `graph.test.js`, `mental-model.test.js`, `vision-dot.test.js`, fixture tests)
+9. [ ] `README.md` + `vision-v0.md` sync
+10. [ ] Cross-link from STUDIO-ADR-0002 → VISION-ADR-0004 (optional footnote PR in dash-spec-studio)
 
 ### Out of scope for implementation PR
 
@@ -314,13 +359,15 @@ Warnings do not fail parse in sketch mode; errors fail `npm test`.
 | Presentation only in JS constants | Not reviewable in `.vision` diff |
 | Rename `block` → `widget` | Collides with UI toolkit language; STUDIO already says **component** |
 | Planet plugin `dashspec-studio-pack` for registry | Extra indirection before second planet exists |
+| Emoji / ASCII icons in `.vision` | Not portable to WPF; not reviewable against prod chrome; bypasses shared icon source |
 
-## Open questions (resolve before Accept)
+## Resolved decisions (2026-09-16)
 
-1. **Overlay component ids** — `palette` vs `command-palette` for command-list instance? **Proposal:** id `palette` on overlay screen; fixture key `command-list` deprecated → `fixture palette` or catalog-only.
-2. **Registry required for Studio example?** **Proposal:** yes — `components dashspec-studio` table ships with example.
-3. **`editor` on Forward screen** — prod deck sample still lists `report-preview` forward; vision federation model uses `editor` on Forward sketch screen. **Proposal:** component ids follow STUDIO-ADR zone map; deck inline section may differ until deck ADR converges — validation `V-C004` uses **screen's** resolved `deckZoneIds`, not prod file elsewhere.
+1. **Overlay component id:** `palette` on `command-palette` overlay screen (`component palette command-list`). Catalog-only data; no separate `fixture command-list`.
+2. **Registry:** `components dashspec-studio` table **required** in `examples/dashspec-studio.vision`.
+3. **Deck validation:** `V-C004` uses **screen's** resolved `deckZoneIds`, not external prod `.deck.gdl` files.
+4. **Icons:** **icon library refs** (`codicons/folder`, …), not emoji/ASCII. Player bundles `@vscode/codicons`; optional `seti` library later for extension-native file glyphs.
 
 ---
 
-**Acceptance:** operator confirms vocabulary + breaking change + checklist. Then implementation PR — no partial land (parser-only without player).
+**Next:** implementation PR per checklist (single vertical slice).
