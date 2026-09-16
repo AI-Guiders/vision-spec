@@ -1,5 +1,6 @@
 /**
- * CCL (authoring command line) — component render (catalog surface ccl.filter).
+ * CCL (authoring command line) — Console notation (no slash prefix).
+ * Slash belongs in editor dual-role surfaces, not cockpit CCL.
  */
 
 export function renderCclBar(container) {
@@ -9,25 +10,19 @@ export function renderCclBar(container) {
   const row = document.createElement("div");
   row.className = "deck-ccl-input-row";
 
-  const prefix = document.createElement("span");
-  prefix.className = "deck-ccl-prefix";
-  prefix.textContent = "/";
-  prefix.setAttribute("aria-hidden", "true");
-
   const input = document.createElement("input");
   input.type = "text";
   input.className = "deck-ccl-input";
   input.placeholder = "add card …";
-  input.setAttribute("aria-label", "Command line — type / then command name");
+  input.setAttribute("aria-label", "Command line — console notation");
   input.spellcheck = false;
 
-  row.appendChild(prefix);
   row.appendChild(input);
   container.appendChild(row);
 
   const hint = document.createElement("div");
   hint.className = "deck-ccl-hint";
-  hint.textContent = "Click here · type /command · Enter run · Esc cancel · Tab complete";
+  hint.textContent = "Console command · Enter run · Esc cancel · Tab complete";
   container.appendChild(hint);
 
   return input;

@@ -37,9 +37,7 @@ export function paletteRowsFromCatalog(catalog) {
     const phraseRow = phraseByName.get(phraseName);
     const phraseText = rowGet(phraseRow ?? {}, "phrase") || phraseName.replace(/-/g, " ");
     const help = rowGet(row, "help") || rowGet(row, "summary") || commandId;
-    const invoke = phraseText
-      ? `/${phraseText.replace(/\{[^}]+\}/g, "").trim()}`
-      : `/${commandId.replace(/\./g, " ")}`;
+    const invoke = phraseText.replace(/\{[^}]+\}/g, "").trim() || commandId.replace(/\./g, " ");
     return {
       title: help,
       invoke,

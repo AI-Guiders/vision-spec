@@ -655,7 +655,7 @@ function renderCommandPalette(container) {
 
   const footer = document.createElement("div");
   footer.className = "palette-footer muted";
-  footer.textContent = "↑↓ navigate · Enter run · Esc close · or type / in cockpit";
+  footer.textContent = "↑↓ navigate · Enter run · Esc close · Ctrl+Q palette";
   container.appendChild(footer);
 
   function runCommand(cmd) {
@@ -694,13 +694,13 @@ function renderCommandPalette(container) {
       meta.className = "palette-item-meta";
       const invoke = document.createElement("code");
       invoke.className = "palette-invoke";
-      invoke.textContent = cmd.invoke || "(no slash path)";
+      invoke.textContent = cmd.invoke || cmd.title;
       meta.appendChild(invoke);
       if (cmd.help) {
-        const help = document.createElement("span");
-        help.className = "palette-help";
-        help.textContent = cmd.help;
-        meta.appendChild(help);
+        const cat = document.createElement("span");
+        cat.className = "palette-help";
+        cat.textContent = cmd.help;
+        meta.insertBefore(cat, invoke);
       }
       li.appendChild(meta);
 
@@ -756,7 +756,7 @@ function onKeyDown(e) {
       transition("Escape");
       return;
     }
-    if (e.ctrlKey && e.key.toLowerCase() === "k") {
+    if (e.ctrlKey && e.key.toLowerCase() === "q") {
       e.preventDefault();
       const search = overlayRoot.querySelector(".palette-search");
       if (search) {
@@ -770,7 +770,7 @@ function onKeyDown(e) {
 
   let trigger = null;
   if (e.key === "Escape") trigger = "Escape";
-  else if (e.ctrlKey && e.key.toLowerCase() === "k") trigger = "Ctrl+K";
+  else if (e.ctrlKey && e.key.toLowerCase() === "q") trigger = "Ctrl+Q";
   else if (e.key === "Enter") trigger = "Enter";
   else if (e.key === "F12") trigger = "F12";
   if (trigger) {

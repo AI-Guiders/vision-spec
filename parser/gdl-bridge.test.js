@@ -46,7 +46,7 @@ test("VisionGdlBridge parses catalog via federation CatalogParser", () => {
   assert.equal(catalog.commands.length, 1);
   assert.deepEqual(catalog.diagnostics, []);
   const rows = paletteRowsFromCatalog(catalog);
-  assert.equal(rows[0].invoke, "/save active document");
+  assert.equal(rows[0].invoke, "save active document");
   assert.equal(rows[0].hotkey, "Ctrl+S");
 });
 
