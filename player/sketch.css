@@ -734,8 +734,8 @@ select, .file-btn {
   position: relative;
   flex: 1 1 auto;
   width: 100%;
-  min-height: 240px;
-  height: auto;
+  min-height: min(62vh, 720px);
+  height: 100%;
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg);
@@ -783,4 +783,5 @@ select, .file-btn {
 }
 .graph-legend .swatch.go { background: #7aa2d6; }
 .graph-legend .swatch.on { background: #a78bfa; }
+
 

@@ -9,6 +9,20 @@ export function dotNodeName(id) {
   return /^[0-9]/.test(name) ? `_${name}` : name;
 }
 
+function blockNodeAttributes(label) {
+  return {
+    label,
+    shape: "box",
+    style: "rounded,filled",
+    fillcolor: "#1f2430",
+    color: "#6b7280",
+    fontcolor: "#c5cdd8",
+    width: 1.55,
+    height: 0.62,
+    fixedsize: "true",
+  };
+}
+
 /**
  * @param {ReturnType<import("./vision-graph.js").buildTransitionGraph>} transitionGraph
  * @param {{ activeScreenId?: string, overlayScreenId?: string | null }} [options]
@@ -41,14 +55,7 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
       idMap.set(nodeName, { kind: "block", id: block.blockId, host: block.host });
       clusterNodes.push({
         name: nodeName,
-        attributes: {
-          label: block.label,
-          shape: "box",
-          style: "rounded,filled",
-          fillcolor: "#1f2430",
-          color: "#6b7280",
-          fontcolor: "#c5cdd8",
-        },
+        attributes: blockNodeAttributes(block.label),
       });
     }
 
@@ -71,6 +78,9 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
           fillcolor: isActive ? "#2a3544" : "#252932",
           color: isActive ? "#5b9bd5" : "#3d4450",
           fontcolor: "#e8eaed",
+          width: 2.2,
+          height: 0.7,
+          fixedsize: "true",
         },
       });
     }
@@ -79,12 +89,16 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
       name: clusterName,
       graphAttributes: {
         label: ` ${screen.label} `,
+        rankdir: hostBlocks.length > 1 ? "LR" : "TB",
+        nodesep: 0.9,
+        ranksep: 1.1,
+        margin: 18,
         style: screen.overlay ? "rounded,dashed" : "rounded",
         color: isActive ? "#5b9bd5" : screen.overlay ? "#9aa0a6" : "#3d4450",
         penwidth: isActive ? 2 : 1.5,
         bgcolor: isActive ? "#1e2632" : "#1a1d23",
         fontcolor: "#e8eaed",
-        fontsize: "12",
+        fontsize: "13",
       },
       nodes: clusterNodes,
     });
@@ -127,20 +141,21 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
     graph: {
       directed: true,
       graphAttributes: {
-        rankdir: "TB",
+        rankdir: "LR",
         bgcolor: "transparent",
-        pad: 0.6,
-        nodesep: 0.55,
-        ranksep: 0.95,
+        pad: 1.2,
+        nodesep: 1.1,
+        ranksep: 2.4,
         splines: "true",
+        compound: "true",
       },
       nodeAttributes: {
         fontname: "Segoe UI, Helvetica, Arial, sans-serif",
-        fontsize: "11",
+        fontsize: "13",
       },
       edgeAttributes: {
         fontname: "Segoe UI, Helvetica, Arial, sans-serif",
-        fontsize: "10",
+        fontsize: "11",
       },
       edges: vizEdges,
       subgraphs,
@@ -148,5 +163,3 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
     idMap,
   };
 }
-
-

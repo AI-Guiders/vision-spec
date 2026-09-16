@@ -27,6 +27,8 @@ export class GraphViewport {
     container.replaceChildren();
     this.$svg = svgElement;
     this.$svg.classList.add("vision-graph-svg");
+    this.$svg.style.width = "100%";
+    this.$svg.style.height = "100%";
     container.appendChild(this.$svg);
 
     for (const node of this.$svg.querySelectorAll("g.node, g.cluster")) {
@@ -34,7 +36,7 @@ export class GraphViewport {
     }
 
     this.bindClick();
-    requestAnimationFrame(() => this.enableZoom());
+    requestAnimationFrame(() => requestAnimationFrame(() => this.enableZoom()));
 
     this.resizeObserver = new ResizeObserver(() => this.fit());
     this.resizeObserver.observe(container);
@@ -46,10 +48,11 @@ export class GraphViewport {
     }
     this.zoomer = svgPanZoom(this.$svg, {
       zoomScaleSensitivity: 0.28,
-      minZoom: 0.25,
-      maxZoom: 6,
-      fit: true,
-      center: true,
+      minZoom: 0.2,
+      maxZoom: 8,
+      fit: false,
+      center: false,
+      controlIconsEnabled: false,
     });
     this.fit();
   }
@@ -59,6 +62,16 @@ export class GraphViewport {
     this.zoomer.resize();
     this.zoomer.fit();
     this.zoomer.center();
+
+    const sizes = this.zoomer.getSizes();
+    const boxW = sizes.viewBox.width * sizes.realZoom;
+    const boxH = sizes.viewBox.height * sizes.realZoom;
+    if (boxW <= 0 || boxH <= 0) return;
+
+    const targetW = sizes.width * 0.9;
+    const targetH = sizes.height * 0.86;
+    const scaleUp = Math.min(targetW / boxW, targetH / boxH);
+    if (scaleUp > 1.04) this.zoomer.zoomBy(scaleUp);
   }
 
   bindClick() {
