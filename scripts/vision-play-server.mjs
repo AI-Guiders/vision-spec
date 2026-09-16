@@ -8,18 +8,23 @@ import { composeVisionProject, composeVisionProjectFromUpload } from '../parser/
 
 const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
 
-/** @type {unknown | null} */
+const BOOT_PROJECT = path.join(ROOT, "examples", "dashspec-studio.visionproj");
+/** @type {{ doc: unknown, mtimeMs: number } | null} */
 let cachedBootDoc = null;
+
+async function loadBootDoc() {
+  const stat = await fs.stat(BOOT_PROJECT);
+  if (cachedBootDoc && cachedBootDoc.mtimeMs === stat.mtimeMs) return cachedBootDoc.doc;
+  const doc = await composeVisionProject(BOOT_PROJECT);
+  cachedBootDoc = { doc, mtimeMs: stat.mtimeMs };
+  return doc;
+}
 
 async function injectPlayerBootDoc(html) {
   if (html.includes("window.__VISION_INITIAL_DOC__=")) return html;
   try {
-    if (!cachedBootDoc) {
-      cachedBootDoc = await composeVisionProject(
-        path.join(ROOT, "examples", "dashspec-studio.visionproj"),
-      );
-    }
-    const payload = JSON.stringify(cachedBootDoc).replace(/</g, "\\u003c");
+    const bootDoc = await loadBootDoc();
+    const payload = JSON.stringify(bootDoc).replace(/</g, "\\u003c");
     const inject = `<script>window.__VISION_INITIAL_DOC__=${payload};</script>`;
     return html.replace("</head>", inject + "\n</head>");
   } catch {
