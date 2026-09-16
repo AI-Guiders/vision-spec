@@ -36,7 +36,6 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
     root.appendChild(renderMfdBand(deck, renderZone, labelForZone));
   } else {
     root.appendChild(renderForwardBand(deck, renderZone, labelForZone));
-    root.appendChild(renderNavHint("F12 → MFD instruments"));
   }
 
   if (deck.eicas) {
@@ -69,6 +68,7 @@ function renderForwardBand(deck, renderZone, labelForZone) {
   }
 
   forward.appendChild(stack);
+  forward.appendChild(renderNavHint("F12 → MFD instruments"));
   return forward;
 }
 
