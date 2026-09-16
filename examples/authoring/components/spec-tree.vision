@@ -1,0 +1,28 @@
+presentation spec-tree
+  label "Project Browser"
+  table kind
+  | kind         | icon                  | color-token           |
+  | folder       | codicons/folder       | tree-folder           |
+  | dashspec     | codicons/file-code    | artifact-dashspec     |
+  | dashlibrary  | codicons/library      | artifact-dashlibrary  |
+  | dashlayout   | codicons/layout       | artifact-dashlayout   |
+  | dashdiagram  | codicons/graph        | artifact-dashdiagram  |
+  | dashpalette  | codicons/color-mode   | artifact-dashpalette  |
+  | dashcatalog  | codicons/list-tree    | artifact-dashcatalog  |
+  | sql          | codicons/database     | artifact-sql          |
+  | catalog-gdl  | codicons/gear         | artifact-catalog-gdl  |
+end presentation
+
+fixture spec-tree
+  folder planet-repo
+    file report.dashspec dashspec
+    folder libraries
+      file filters.dashlibrary dashlibrary
+    folder layouts
+      file weekly.dashlayout dashlayout
+    folder diagrams
+      file peak-kpi.dashdiagram dashdiagram
+    folder sql/migrations
+      file 001_views.sql sql
+      file catalog.gdl catalog-gdl
+end fixture

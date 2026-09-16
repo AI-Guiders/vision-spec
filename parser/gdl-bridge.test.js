@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url";
 import { parseCatalogViaBridge, parseDeckViaBridge } from "./gdl-bridge.js";
 import { wrapCatalogDocument, wrapDeckDocument } from "./gdl-router.js";
 import { paletteRowsFromCatalog, deckPresetToScreenDeck } from "./gdl-ir.js";
-import { parseVision } from "./vision-parser.js";
+import { composeVisionFile } from "./vision-compose.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const example = fs.readFileSync(path.join(__dirname, "..", "examples", "dashspec-studio.vision"), "utf8");
+const examplePath = path.join(__dirname, "..", "examples", "dashspec-studio.vision");
 
 const catalogBody = `
 defaults
@@ -59,7 +59,7 @@ test("VisionGdlBridge parses deck via federation DeckParser", () => {
 });
 
 test("parseVision routes inline GDL through federation bridge", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   assert.ok(doc.catalog?.commands?.length >= 5);
   assert.ok(doc.deck?.presets?.some((p) => p.name === "report-author"));
 });

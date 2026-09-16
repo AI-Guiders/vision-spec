@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { invokeGdlBridgeSync } from "../parser/gdl-bridge.js";
+import { composeVisionFile } from "../parser/vision-compose.js";
 
 const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const PORT = Number(process.env.PORT || 5199);
@@ -51,6 +52,24 @@ const server = http.createServer(async (req, res) => {
       const payload = invokeGdlBridgeSync(kind, text);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(payload));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(String(err?.message ?? err));
+    }
+    return;
+  }
+  if (req.method === "POST" && req.url === "/__vision/parse") {
+    try {
+      const { path: relPath } = JSON.parse(await readBody(req));
+      const fullPath = path.normalize(path.join(ROOT, relPath.replace(/^\//, "")));
+      if (!fullPath.startsWith(ROOT)) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return;
+      }
+      const doc = await composeVisionFile(fullPath);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(doc));
     } catch (err) {
       res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
       res.end(String(err?.message ?? err));

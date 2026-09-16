@@ -1,4 +1,4 @@
-import { parseVision } from "./vision-parser.js";
+import { composeVisionFile } from "./vision-compose.js";
 import { deckZoneIds, resolvePlugins } from "./plugins.js";
 import { fixtureKeylines } from "./fixture-parse.js";
 import test from "node:test";
@@ -8,13 +8,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const example = fs.readFileSync(
-  path.join(__dirname, "..", "examples", "dashspec-studio.vision"),
-  "utf8",
-);
+const examplePath = path.join(__dirname, "..", "examples", "dashspec-studio.vision");
 
 test("mental-model plugin parses federation cockpit deck lines", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   const studio = doc.screens.find((s) => s.id === "studio");
   const mfd = doc.screens.find((s) => s.id === "studio-mfd");
   assert.ok(studio?.deck);
@@ -30,7 +27,7 @@ test("mental-model plugin parses federation cockpit deck lines", async () => {
 });
 
 test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   const mfdScreen = doc.screens.find((s) => s.id === "studio-mfd");
   const plugins = resolvePlugins(doc);
   const zones = deckZoneIds(mfdScreen, plugins);
@@ -43,7 +40,7 @@ test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
 });
 
 test("pad component lives on studio-mfd screen", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   const mfdScreen = doc.screens.find((s) => s.id === "studio-mfd");
   const pad = mfdScreen.components.find((c) => c.kind === "pad");
   assert.equal(pad?.id, "script-pad");
@@ -51,11 +48,11 @@ test("pad component lives on studio-mfd screen", async () => {
 });
 
 test("data-lab repl uses three-pane SQL Browser sketch", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   assert.ok(fixtureKeylines(doc.fixtures["data-lab"]).length >= 3);
 });
 
 test("F12 transitions between Forward and MFD screens", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   assert.ok(doc.transitions.some((t) => t.from === "studio" && t.to === "studio-mfd" && t.when === "F12"));
 });

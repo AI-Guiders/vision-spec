@@ -1,4 +1,4 @@
-import { parseVision } from "./vision-parser.js";
+import { composeVisionFile } from "./vision-compose.js";
 import { buildTransitionGraph } from "./vision-graph.js";
 import { buildVisionDotGraph, dotNodeName } from "./vision-dot.js";
 import { instance } from "@viz-js/viz";
@@ -9,17 +9,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const example = fs.readFileSync(
-  path.join(__dirname, "..", "examples", "dashspec-studio.vision"),
-  "utf8",
-);
+const examplePath = path.join(__dirname, "..", "examples", "dashspec-studio.vision");
 
 test("dotNodeName sanitizes graph ids", () => {
   assert.equal(dotNodeName("component:spec-tree"), "component_spec_tree");
 });
 
 test("buildVisionDotGraph nests components in screen clusters", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   const transitionGraph = buildTransitionGraph(doc);
   const { graph, idMap } = buildVisionDotGraph(transitionGraph);
 
@@ -49,7 +46,7 @@ test("buildVisionDotGraph nests components in screen clusters", async () => {
 });
 
 test("Graphviz renders dashspec-studio transition graph", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   const transitionGraph = buildTransitionGraph(doc);
   const { graph } = buildVisionDotGraph(transitionGraph);
   const viz = await instance();

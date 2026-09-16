@@ -15,6 +15,7 @@ import { parseIconRef } from "./icon-ref.js";
 import { parseFixtureBody } from "./fixture-parse.js";
 import { isComponentKind } from "./component-kinds.js";
 import { validateDocument } from "./vision-validate.js";
+import { splitImports } from "./authoring-import.js";
 
 /** @typedef {{ kind: "folder", name: string, children: TreeFixtureNode[] } | { kind: "file", path: string, artifactKind: string }} TreeFixtureNode */
 
@@ -72,11 +73,50 @@ function parsePresentationBody(body, defaultLibrary) {
 
 /**
  * @param {string} source
- * @param {{ gdlEndpoint?: string, strict?: boolean }} [options]
+ * @param {{ gdlEndpoint?: string, strict?: boolean, projectRoot?: string, readFile?: (logicalPath: string) => string, compose?: boolean }} [options]
  */
 export async function parseVision(source, options = {}) {
+  if (options.compose === false) {
+    return parseVisionLeaf(source, options);
+  }
+  const { imports } = splitImports(source);
+  if (imports.length || options.projectRoot) {
+    if (!options.projectRoot && imports.length) {
+      throw new Error("V-I006: import requires projectRoot (use composeVisionFile)");
+    }
+    const { composeVision } = await import("./vision-compose.js");
+    return composeVision(source, options);
+  }
+  return parseVisionLeaf(source, options);
+}
+
+export { composeVisionFile } from "./vision-compose.js";
+
+/**
+ * @param {string} source
+ * @param {{ gdlEndpoint?: string, strict?: boolean }} [options]
+ */
+export async function parseVisionLeaf(source, options = {}) {
+  return parseVisionCore(source, options, { mode: "leaf" });
+}
+
+/**
+ * @param {string} source
+ * @param {{ gdlEndpoint?: string, strict?: boolean }} [options]
+ */
+export async function parseVisionFragment(source, options = {}) {
+  return parseVisionCore(source, options, { mode: "pack" });
+}
+
+/**
+ * @param {string} source
+ * @param {{ gdlEndpoint?: string, strict?: boolean }} [options]
+ * @param {{ mode: "leaf" | "pack" }} ctx
+ */
+async function parseVisionCore(source, options = {}, ctx) {
   const gdlEndpoint = options.gdlEndpoint;
-  const lines = source.split(/\r?\n/);
+  const { bodyLines } = splitImports(source);
+  const lines = bodyLines.join("\n").split(/\r?\n/);
   /** @type {VisionDocument} */
   const doc = {
     id: "",
@@ -284,8 +324,10 @@ export async function parseVision(source, options = {}) {
     } else if (KEYWORD_LINE.test(trimmed)) throw new Error(`Line ${i + 1}: unexpected: ${trimmed}`);
   }
 
-  if (!doc.id) throw new Error("Missing vision id");
-  if (!doc.screens.length) throw new Error("No screens");
+  if (ctx.mode === "leaf") {
+    if (!doc.id) throw new Error("Missing vision id");
+    if (!doc.screens.length) throw new Error("No screens");
+  }
 
   for (const h of doc.handlers) {
     const { toScreen, toComponent } = resolveOnTarget(doc, h.component, h.to);
@@ -293,7 +335,9 @@ export async function parseVision(source, options = {}) {
     h.toComponent = toComponent;
   }
 
-  validateDocument(doc, { strict: options.strict !== false });
+  if (ctx.mode === "leaf") {
+    validateDocument(doc, { strict: options.strict !== false });
+  }
   return doc;
 }
 

@@ -56,6 +56,25 @@ async function init() {
 }
 
 async function loadUrl(url) {
+  const rel = url.replace(/^\//, "");
+  if (rel.endsWith(".vision")) {
+    const resp = await fetch("/__vision/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: rel }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    doc = await resp.json();
+    ensureIconLibraries(doc);
+    titleEl.textContent = doc.title || doc.id;
+    currentScreenId = entryScreen(doc).id;
+    overlayScreenId = null;
+    logList.innerHTML = "";
+    render();
+    log(`Loaded vision ${doc.id}`);
+    if (viewMode === "sketch") stage.focus();
+    return;
+  }
   const text = await fetch(url).then((r) => {
     if (!r.ok) throw new Error(`Failed to load ${url}`);
     return r.text();

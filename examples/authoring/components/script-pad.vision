@@ -1,0 +1,4 @@
+fixture script-pad
+  prompt create report with sql-server template ulsa-weekly
+  plan report.dashspec · filters.dashlibrary · catalog.gdl · 001_views.sql
+end fixture

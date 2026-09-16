@@ -1,3 +1,4 @@
+import { composeVisionFile } from "./vision-compose.js";
 import { parseVision, entryScreen } from "./vision-parser.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -6,13 +7,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const example = fs.readFileSync(
-  path.join(__dirname, "..", "examples", "dashspec-studio.vision"),
-  "utf8",
-);
+const examplePath = path.join(__dirname, "..", "examples", "dashspec-studio.vision");
 
 test("parse dashspec-studio example", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   assert.equal(doc.id, "dashspec-studio");
   assert.equal(doc.screens.length, 3);
   assert.equal(doc.screens.find((s) => s.id === "command-palette")?.overlay, true);
@@ -27,7 +25,7 @@ test("parse dashspec-studio example", async () => {
 });
 
 test("entry screen is non-overlay Forward deck", async () => {
-  const doc = await parseVision(example);
+  const doc = await composeVisionFile(examplePath);
   assert.equal(entryScreen(doc).id, "studio");
 });
 
