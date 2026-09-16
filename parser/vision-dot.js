@@ -31,6 +31,7 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
 
   for (const screen of screens) {
     const clusterName = `cluster_${dotNodeName(screen.id)}`;
+    idMap.set(clusterName, { kind: "screen", id: screen.id });
     const isActive = screen.id === activeScreenId || screen.id === overlayScreenId;
     const hostBlocks = blocksByHost.get(screen.id) ?? [];
     const clusterNodes = [];
@@ -147,3 +148,5 @@ export function buildVisionDotGraph(transitionGraph, options = {}) {
     idMap,
   };
 }
+
+

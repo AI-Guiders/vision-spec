@@ -45,6 +45,7 @@ test("buildVisionDotGraph nests blocks in screen clusters", async () => {
   assert.equal(f12.attributes?.lhead, `cluster_${dotNodeName("studio-mfd")}`);
 
   assert.equal(idMap.get(dotNodeName("block:spec-tree"))?.host, "studio-mfd");
+  assert.equal(idMap.get(`cluster_${dotNodeName("studio")}`)?.id, "studio");
 });
 
 test("Graphviz renders dashspec-studio transition graph", async () => {

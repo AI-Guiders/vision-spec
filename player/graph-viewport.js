@@ -5,6 +5,18 @@
 /** @type {any} */
 const svgPanZoom = globalThis.svgPanZoom;
 
+/** @param {Element} groupEl */
+function lookupMeta(groupEl, idMap) {
+  const title = groupEl.querySelector(":scope > title")?.textContent?.trim();
+  if (!title) return null;
+  return idMap.get(title) ?? null;
+}
+
+/** @param {{ kind: string, id: string, host?: string | null }} meta */
+function screenIdFromMeta(meta) {
+  return meta.kind === "block" ? meta.host : meta.id;
+}
+
 export class GraphViewport {
   constructor(svgElement, container, { idMap, onSelectScreen }) {
     this.container = container;
@@ -17,7 +29,7 @@ export class GraphViewport {
     this.$svg.classList.add("vision-graph-svg");
     container.appendChild(this.$svg);
 
-    for (const node of this.$svg.querySelectorAll("g.node")) {
+    for (const node of this.$svg.querySelectorAll("g.node, g.cluster")) {
       node.style.cursor = "pointer";
     }
 
@@ -50,29 +62,29 @@ export class GraphViewport {
   }
 
   bindClick() {
-    let dragged = false;
-    const onMove = () => {
-      dragged = true;
-    };
-
-    this.$svg.addEventListener("mousedown", () => {
-      dragged = false;
-      this.$svg.addEventListener("mousemove", onMove, { once: true });
-    });
-
-    this.$svg.addEventListener("mouseup", (event) => {
-      this.$svg.removeEventListener("mousemove", onMove);
-      if (dragged) return;
-
+    this.$svg.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const nodeEl = target.closest("g.node");
-      if (!nodeEl?.id) return;
 
-      const meta = this.idMap.get(nodeEl.id);
-      if (!meta) return;
-      const screenId = meta.kind === "block" ? meta.host : meta.id;
-      if (screenId) this.onSelectScreen?.(screenId);
+      const nodeEl = target.closest("g.node");
+      if (nodeEl) {
+        const meta = lookupMeta(nodeEl, this.idMap);
+        const screenId = meta ? screenIdFromMeta(meta) : null;
+        if (screenId) {
+          event.preventDefault();
+          this.onSelectScreen?.(screenId);
+        }
+        return;
+      }
+
+      const clusterEl = target.closest("g.cluster");
+      if (!clusterEl) return;
+      const meta = lookupMeta(clusterEl, this.idMap);
+      const screenId = meta ? screenIdFromMeta(meta) : null;
+      if (screenId) {
+        event.preventDefault();
+        this.onSelectScreen?.(screenId);
+      }
     });
   }
 
