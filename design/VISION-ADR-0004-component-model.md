@@ -336,13 +336,13 @@ Warnings do not fail parse in sketch mode; errors fail `npm test`.
 
 1. [x] `design/VISION-ADR-0004-component-model.md` → **Accepted**
 2. [x] Parser: `component`, `components`, `presentation`, typed `fixture`, IR migration
-3. [ ] `vision-graph.js` / `vision-dot.js`: `component:` nodes
+3. [x] `vision-graph.js` / `vision-dot.js`: `component:` nodes
 4. [x] Player: `renderComponent`, tree presentation, zone labels from presentation
-5. [ ] `@vscode/codicons` dep + `player/icon-registry.js` + tree row layout (codicon + label + indent)
-6. [ ] `sketch.css`: `--artifact-*` color tokens
+5. [x] `@vscode/codicons` dep + `player/icon-registry.js` + tree row layout (codicon + label + indent)
+6. [x] `sketch.css`: `--artifact-*` color tokens
 7. [x] Rewrite `examples/dashspec-studio.vision` + `minimal.vision`
 8. [x] Rewrite tests (`parser.test.js`, `graph.test.js`, `mental-model.test.js`, `vision-dot.test.js`, fixture tests)
-9. [ ] `README.md` + `vision-v0.md` sync
+9. [x] `README.md` + `vision-v0.md` sync
 10. [ ] Cross-link from STUDIO-ADR-0002 → VISION-ADR-0004 (optional footnote PR in dash-spec-studio)
 
 ### Out of scope for implementation PR
