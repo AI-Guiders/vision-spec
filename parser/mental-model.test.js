@@ -21,9 +21,10 @@ test("mental-model plugin parses federation cockpit deck lines", async () => {
   assert.deepEqual(studio.deck.mfdSlots, ["spec-tree"]);
   assert.equal(studio.deck.eicas, "resolve");
   assert.equal(studio.mfdPage, undefined);
+  assert.equal(studio.deck.forwardDock, "data-lab");
   assert.equal(mfd?.mfdPage, true);
-  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "SQL", "Pad", "Preview"]);
-  assert.equal(mfd?.deck?.mfdSplit, "data-lab");
+  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "Pad", "Preview"]);
+  assert.equal(mfd?.deck?.mfdSplit, undefined);
 });
 
 test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
@@ -38,6 +39,14 @@ test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
   assert.ok(zones.has("resolve"));
   assert.ok(zones.has("script-pad"));
   assert.ok(zones.has("layout-board"));
+});
+
+test("data-lab repl docks under editor on Forward screen", async () => {
+  const doc = await composeVisionFile(examplePath);
+  const studio = doc.screens.find((s) => s.id === "studio");
+  const repl = studio.components.find((c) => c.kind === "repl");
+  assert.equal(repl?.id, "data-lab");
+  assert.equal(studio.deck.forwardDock, "data-lab");
 });
 
 test("pad component lives on studio-mfd screen", async () => {

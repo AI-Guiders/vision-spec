@@ -46,6 +46,7 @@ Screen lines when plugin active:
 preset report-author
 topology (MFD)(F)
 forward report-preview
+dock data-lab
 mfd-tabs Project | Layout | Pad
 mfd spec-tree | editor
 split data-lab

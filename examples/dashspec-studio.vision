@@ -49,16 +49,16 @@ end deck
 
 screen studio
   use-deck report-author
+  dock data-lab
   component editor tabs
+  component data-lab repl
 
 screen studio-mfd
   mfd-page
   use-deck report-author
-  mfd-tabs Project | Sources | SQL | Pad | Preview
-  split data-lab
+  mfd-tabs Project | Sources | Pad | Preview
   component spec-tree tree
   component environment-readiness panel
-  component data-lab repl
   component script-pad pad
   component report-preview preview
   component layout-board panel

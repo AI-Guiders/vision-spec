@@ -461,7 +461,15 @@ select, .file-btn, button.file-btn {
   min-height: 0;
 }
 
-.deck-forward-primary .deck-forward-body {
+.deck-forward-primary .deck-forward-stack {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+
+.deck-forward-body {
   min-height: 240px;
 }
 
@@ -587,7 +595,18 @@ select, .file-btn, button.file-btn {
   overflow: hidden;
 }
 
-.deck-zone.forward { flex: 1; }
+.deck-zone.forward { flex: 1; min-height: 0; }
+.deck-zone.forward-dock {
+  flex: 0 0 auto;
+  max-height: 32%;
+  min-height: 96px;
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+.deck-zone.forward-dock .deck-zone-body {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.85rem;
+}
 .deck-zone.mfd-narrow { flex: 0 0 30%; max-width: 32%; }
 .deck-zone.mfd-wide { flex: 1 1 auto; min-width: 0; }
 .deck-zone.mfd-split { flex: 0 0 34%; max-width: 38%; }

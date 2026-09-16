@@ -53,12 +53,22 @@ function renderForwardBand(deck, renderZone, labelForZone) {
   const forward = document.createElement("div");
   forward.className = "deck-forward deck-forward-primary";
   forward.appendChild(bandLabel("Forward · primary work"));
+
+  const stack = document.createElement("div");
+  stack.className = "deck-forward-stack";
+
   const forwardBody = document.createElement("div");
   forwardBody.className = "deck-forward-body";
   for (const zoneId of deck.forward ?? ["editor"]) {
     forwardBody.appendChild(wrapZone(zoneId, "forward", renderZone, labelForZone));
   }
-  forward.appendChild(forwardBody);
+  stack.appendChild(forwardBody);
+
+  if (deck.forwardDock) {
+    stack.appendChild(wrapZone(deck.forwardDock, "forward-dock", renderZone, labelForZone));
+  }
+
+  forward.appendChild(stack);
   return forward;
 }
 

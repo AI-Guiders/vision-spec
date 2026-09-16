@@ -10,6 +10,7 @@ const FORWARD_LINE = /^forward\s+(.+)$/i;
 const MFD_LINE = /^mfd\s+(.+)$/i;
 const MFD_TABS_LINE = /^mfd-tabs\s+(.+)$/i;
 const SPLIT_LINE = /^split\s+(\S+)\s*$/i;
+const DOCK_LINE = /^dock\s+(\S+)\s*$/i;
 const EICAS_LINE = /^eicas\s+(\S+)\s*$/i;
 
 /** report-author MFD tab id → zone id */
@@ -77,6 +78,12 @@ export function parseScreenLine(screen, trimmed, doc = null) {
     return true;
   }
 
+  if ((m = trimmed.match(DOCK_LINE))) {
+    ensureDeck(screen);
+    screen.deck.forwardDock = m[1];
+    return true;
+  }
+
   if ((m = trimmed.match(EICAS_LINE))) {
     ensureDeck(screen);
     screen.deck.eicas = m[1];
@@ -92,6 +99,7 @@ export function deckZoneIdsFromScreen(screen) {
   const ids = new Set();
   for (const z of deck.forward ?? []) ids.add(z);
   for (const z of deck.mfdSlots ?? []) ids.add(z);
+  if (deck.forwardDock) ids.add(deck.forwardDock);
   if (deck.mfdSplit) ids.add(deck.mfdSplit);
   if (deck.eicas) ids.add(deck.eicas);
   for (const tab of deck.mfdTabs ?? []) {
@@ -113,6 +121,7 @@ function ensureDeck(screen) {
       mfdSlots: [],
       mfdTabs: [],
       mfdSplit: null,
+      forwardDock: null,
       eicas: null,
     };
   }
