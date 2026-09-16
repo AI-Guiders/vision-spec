@@ -1,10 +1,10 @@
-﻿# VISION-ADR-0004 — Component model (screens, deck zones, presentation)
+# VISION-ADR-0004 — Component model (screens, deck zones, presentation)
 
 | | |
 |---|---|
 | **Status** | Accepted |
 | **Date** | 2026-09-16 |
-| **Relates to** | [VISION-ADR-0001](./VISION-ADR-0001-charter.md) · [VISION-ADR-0002](./VISION-ADR-0002-plugin-model.md) · [VISION-ADR-0003](./VISION-ADR-0003-gdl-inline-sections.md) · [STUDIO-ADR-0002](https://github.com/AI-Guiders/dash-spec-studio/blob/main/design/STUDIO-ADR-0002-component-model-and-navigation.md) · GUIDERS-ADR-0055 |
+| **Relates to** | [VISION-ADR-0001](./VISION-ADR-0001-charter.md) · [VISION-ADR-0002](./VISION-ADR-0002-plugin-model.md) · [VISION-ADR-0003](./VISION-ADR-0003-gdl-inline-sections.md) · [VISION-ADR-0005](./VISION-ADR-0005-federation-import-composition.md) · [STUDIO-ADR-0002](https://github.com/AI-Guiders/dash-spec-studio/blob/main/design/STUDIO-ADR-0002-component-model-and-navigation.md) · GUIDERS-ADR-0055 |
 
 ## Problem
 

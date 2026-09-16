@@ -4,11 +4,11 @@
 |---|---|
 | **Status** | Accepted (v0 spike) |
 | **Date** | 2026-09-15 |
-| **Relates to** | [VISION-ADR-0001](./VISION-ADR-0001-charter.md) · [VISION-ADR-0002](./VISION-ADR-0002-plugin-model.md) · GUIDERS catalog/deck grammar |
+| **Relates to** | [VISION-ADR-0001](./VISION-ADR-0001-charter.md) · [VISION-ADR-0002](./VISION-ADR-0002-plugin-model.md) · [VISION-ADR-0005](./VISION-ADR-0005-federation-import-composition.md) · GUIDERS catalog/deck grammar |
 
 ## Problem
 
-VisionSpec must be **self-contained**: one `.vision` file is enough for alignment review (screens, transitions, commands, deck). Ad-hoc fixtures and JS re-parsers duplicate federation GDL and drift from prod catalogs.
+VisionSpec must be **self-contained at the review leaf**: one entry `.vision` is enough to review **screens, transitions, commands, and scenario** in the sketch player. Reusable planet material (components, presentation, fixtures) MAY compose via federation `import` — see [VISION-ADR-0005](./VISION-ADR-0005-federation-import-composition.md). Ad-hoc fixtures and JS re-parsers duplicate federation GDL and drift from prod catalogs.
 
 ## Decision
 
