@@ -61,7 +61,6 @@ screen studio-mfd
   component environment-readiness panel
   component script-pad pad
   component report-preview preview
-  component layout-board panel
   component resolve panel
 
 screen command-palette overlay

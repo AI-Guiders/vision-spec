@@ -35,10 +35,10 @@ test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
   assert.ok(zones.has("spec-tree"));
   assert.ok(zones.has("report-preview"));
   assert.ok(zones.has("environment-readiness"));
-  assert.ok(zones.has("data-lab"));
+  assert.ok(!zones.has("data-lab"), "SQL dock lives on Forward screen only");
   assert.ok(zones.has("resolve"));
   assert.ok(zones.has("script-pad"));
-  assert.ok(zones.has("layout-board"));
+  assert.ok(!zones.has("layout-board"), "Phase 2 — not in mfd-tabs yet");
 });
 
 test("data-lab repl docks under editor on Forward screen", async () => {

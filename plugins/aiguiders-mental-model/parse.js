@@ -106,9 +106,6 @@ export function deckZoneIdsFromScreen(screen) {
     const zone = REPORT_AUTHOR_TAB_ZONES[tab];
     if (zone) ids.add(zone);
   }
-  if (deck.mfdTabs?.length) {
-    for (const zone of Object.values(REPORT_AUTHOR_TAB_ZONES)) ids.add(zone);
-  }
   return [...ids];
 }
 
