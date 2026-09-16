@@ -22,6 +22,7 @@ const logList = document.getElementById("log-list");
 const titleEl = document.getElementById("vision-title");
 const exampleSelect = document.getElementById("example-select");
 const fileInput = document.getElementById("file-input");
+const folderInput = document.getElementById("folder-input");
 const viewModeSelect = document.getElementById("view-mode");
 
 /** @type {ReturnType<parseVision> | null} */
@@ -36,6 +37,7 @@ init();
 async function init() {
   exampleSelect.addEventListener("change", () => loadUrl(exampleSelect.value));
   fileInput.addEventListener("change", onFilePick);
+  folderInput.addEventListener("change", onFolderPick);
   viewModeSelect.addEventListener("change", () => {
     viewMode = viewModeSelect.value;
     render();
@@ -64,15 +66,7 @@ async function loadUrl(url) {
       body: JSON.stringify({ path: rel }),
     });
     if (!resp.ok) throw new Error(await resp.text());
-    doc = await resp.json();
-    ensureIconLibraries(doc);
-    titleEl.textContent = doc.title || doc.id;
-    currentScreenId = entryScreen(doc).id;
-    overlayScreenId = null;
-    logList.innerHTML = "";
-    render();
-    log(`Loaded vision ${doc.id}`);
-    if (viewMode === "sketch") stage.focus();
+    finishLoad(await resp.json());
     return;
   }
   const text = await fetch(url).then((r) => {
@@ -86,12 +80,81 @@ function onFilePick(ev) {
   const file = ev.target.files?.[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = async () => loadText(String(reader.result));
+  reader.onload = async () => loadText(String(reader.result), file.name);
   reader.readAsText(file);
 }
 
-async function loadText(source) {
-  doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });
+function onFolderPick(ev) {
+  const fileList = ev.target.files;
+  if (!fileList?.length) return;
+  loadProject(fileList);
+  ev.target.value = "";
+}
+
+function buildFilesMap(fileList) {
+  /** @type {Record<string, string>} */
+  const files = {};
+  for (const file of fileList) {
+    const rel = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
+    if (!rel.endsWith(".vision")) continue;
+    files[rel] = null;
+  }
+  return { files, paths: Object.keys(files) };
+}
+
+async function readFilesIntoMap(fileList, files) {
+  const paths = Object.keys(files);
+  await Promise.all(
+    paths.map(async (rel) => {
+      const file = [...fileList].find(
+        (f) => (f.webkitRelativePath || f.name).replace(/\\/g, "/") === rel,
+      );
+      if (!file) return;
+      files[rel] = await file.text();
+    }),
+  );
+}
+
+function detectProjectRoot(entryPath) {
+  const normalized = entryPath.replace(/\\/g, "/");
+  const slash = normalized.lastIndexOf("/");
+  return slash >= 0 ? normalized.slice(0, slash) : "";
+}
+
+function detectLeafEntry(files) {
+  const keys = Object.keys(files).sort();
+  for (const key of keys) {
+    const body = files[key];
+    if (/\bvision\s+/i.test(body) && /\bscreen\s+/i.test(body)) return key;
+  }
+  return keys[0] ?? null;
+}
+
+async function loadProject(fileList) {
+  const { files, paths } = buildFilesMap(fileList);
+  if (!paths.length) {
+    throw new Error("No .vision files in selected folder");
+  }
+  await readFilesIntoMap(fileList, files);
+  const entryPath = detectLeafEntry(files);
+  if (!entryPath) throw new Error("Could not detect leaf .vision entry");
+  const projectRoot = detectProjectRoot(entryPath);
+  const resp = await fetch("/__vision/compose", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entryPath, files, projectRoot }),
+  });
+  if (!resp.ok) throw new Error(await resp.text());
+  finishLoad(await resp.json());
+  log(`Loaded project ${entryPath}`);
+}
+
+function hasImportDirectives(source) {
+  return /^\s*import\s+/m.test(source) || /^\s*!include\s+/m.test(source);
+}
+
+function finishLoad(loaded) {
+  doc = loaded;
   ensureIconLibraries(doc);
   titleEl.textContent = doc.title || doc.id;
   currentScreenId = entryScreen(doc).id;
@@ -100,6 +163,30 @@ async function loadText(source) {
   render();
   log(`Loaded vision ${doc.id}`);
   if (viewMode === "sketch") stage.focus();
+}
+
+async function loadText(source, fileName = "") {
+  if (hasImportDirectives(source)) {
+    const singleFile = fileName || "entry.vision";
+    const resp = await fetch("/__vision/compose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        entryPath: singleFile,
+        files: { [singleFile]: source },
+        projectRoot: "",
+      }),
+    });
+    if (resp.ok) {
+      finishLoad(await resp.json());
+      return;
+    }
+    throw new Error(
+      "This .vision file uses import directives. Use Open project folder and select the project root (directory containing imported packs).",
+    );
+  }
+  doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });
+  finishLoad(doc);
 }
 
 function render() {

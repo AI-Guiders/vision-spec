@@ -9,7 +9,8 @@ vision <id>
   [title "<human title>"]
   [use <plugin-id> ...]
 
-import "authoring/dashspec-studio.base.vision"
+import <federation/vision/icon-defaults>
+import "authoring/registry/*.vision"
 import "authoring/components/*.vision"
 
 defaults
@@ -63,9 +64,11 @@ VisionSpec adopts **GUIDERS-ADR-0052** `import` for planet packs. Logical paths 
 |---|---|
 | `import "authoring/base.vision"` | Logical file path |
 | `import "authoring/components/*.vision"` | Glob expand (sorted) |
-| `import <wire/lib>` | Wire stdlib (player v1: unresolved) |
+| `import <wire/lib>` | Wire stdlib via `stdlib/wires/` (e.g. `<federation/vision/icon-defaults>`) |
 
 Leaf files hold **screens**, `go`, `on`, and optional inline `catalog`/`deck`. Imported packs hold `components`, `presentation`, `fixture`, shared defaults — see `design/VISION-ADR-0005-federation-import-composition.md`.
+
+**Browser player:** single-file open parses inline content only. Files with `import` need **Open project folder** (uploads all `.vision` files; server composes via `POST /__vision/compose`).
 
 ## Screens
 

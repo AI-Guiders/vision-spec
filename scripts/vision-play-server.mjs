@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { invokeGdlBridgeSync } from "../parser/gdl-bridge.js";
-import { composeVisionFile } from "../parser/vision-compose.js";
+import { composeVisionFile, composeVisionFromMap } from "../parser/vision-compose.js";
 
 const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const PORT = Number(process.env.PORT || 5199);
@@ -58,6 +58,28 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+  if (req.method === "POST" && req.url === "/__vision/compose") {
+    try {
+      const { entryPath, files, projectRoot } = JSON.parse(await readBody(req));
+      const entry = String(entryPath ?? "").replace(/\\/g, "/");
+      if (!entry || !files || typeof files !== "object") {
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("entryPath and files required");
+        return;
+      }
+      const doc = await composeVisionFromMap(entry, files, {
+        projectRoot: projectRoot ?? "",
+        gdlEndpoint: "/__vision/gdl",
+        strict: false,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(doc));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(String(err?.message ?? err));
+    }
+    return;
+  }
   if (req.method === "POST" && req.url === "/__vision/parse") {
     try {
       const { path: relPath } = JSON.parse(await readBody(req));
@@ -67,7 +89,7 @@ const server = http.createServer(async (req, res) => {
         res.end("Forbidden");
         return;
       }
-      const doc = await composeVisionFile(fullPath);
+      const doc = await composeVisionFile(fullPath, { gdlEndpoint: "/__vision/gdl" });
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(doc));
     } catch (err) {

@@ -73,7 +73,7 @@ Parser pipeline:
 ```text
 1. Parse leaf + recursively resolve import "…" (cycle detection)
 2. For each import <…> — resolve via wire catalog (v1: stub error unless player bundles known wires)
-3. Merge pack sections into one VisionDocument IR
+3. Merge pack sections into one VisionDocument IR (registry globs + wire packs compose before leaf body)
 4. validateDocument (ADR-0004 rules)
 5. Player / graph consume flat IR only
 ```
@@ -102,7 +102,7 @@ Align with [GUIDERS-ADR-0051](https://github.com/AI-Guiders/guiders-platform/blo
 | Context | Root |
 |---------|------|
 | `npm test` / Node parser | Directory containing entry `.vision` (single-file) **or** nearest manifest (future) |
-| Browser player | Directory of opened `.vision` file; `import "…"` via play-server same origin |
+| Browser player | **Open project folder** uploads a virtual file map; `POST /__vision/compose` resolves logical + wire imports |
 | IDE / CDP (future) | `Authoring.Project` graph walker |
 
 v1 sketch player: **entry file directory** is project root.
@@ -113,7 +113,9 @@ v1 sketch player: **entry file directory** is project root.
 vision-spec/examples/
   dashspec-studio.vision                 # leaf — scenario + catalog/deck
   authoring/
-    dashspec-studio.base.vision            # pack — defaults, icon-libraries, components registry
+    registry/                              # split component registry tables
+      navigation.vision
+      workspace.vision
     components/
       spec-tree.vision                     # presentation + fixture (one component per file)
       data-lab.vision
@@ -126,7 +128,8 @@ vision-spec/examples/
 vision dashspec-studio
   use aiguiders-mental-model
 
-import "authoring/dashspec-studio.base.vision"
+import <federation/vision/icon-defaults>
+import "authoring/registry/*.vision"
 import "authoring/components/*.vision"
 
 catalog dashspec-studio
@@ -180,7 +183,7 @@ Inline `catalog` / `deck` in leaf remain valid (ADR-0003).
 | **Import line parse** | `parser/authoring-import.js` — match `AuthoringImportLine` + conformance vectors |
 | **Resolve** | `parser/vision-compose.js` — load tree, merge, diagnostics |
 | **Player** | Flat IR only after compose |
-| **Wire imports** | v1 optional stub |
+| **Wire imports** | `parser/wire-catalog.js` resolves `<federation/vision/*>` from `stdlib/wires/` |
 
 **Do not** reimplement quote/angle-bracket rules ad hoc.
 
@@ -204,7 +207,7 @@ Shared kit with GDL (0048 §3): blocks, tables, `#`, **`import`**.
 ## Non-goals
 
 - `Authoring.Project` manifest v1
-- Wire stdlib in browser player v1
+- Full wire stdlib mirror in browser (server bundles `stdlib/wires/` only)
 - `import` of `.catalog.gdl` / `.deck.gdl` (stay ADR-0003 GDL bridge)
 - Cross-repo URL imports
 
