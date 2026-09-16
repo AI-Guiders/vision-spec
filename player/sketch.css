@@ -78,10 +78,10 @@ select, .file-btn, button.file-btn {
   padding: 12px;
   outline: none;
   min-height: 0;
-  height: 100%;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .stage.stage-graph {
@@ -102,7 +102,8 @@ select, .file-btn, button.file-btn {
 .overlay-root.hidden { display: none; }
 
 .screen {
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -321,12 +322,25 @@ select, .file-btn, button.file-btn {
 .tab.active { border-color: var(--accent); color: var(--accent); }
 
 .preview-placeholder {
-  flex: 1;
+  flex: 1 1 0;
   display: grid;
   place-items: center;
   color: var(--muted);
   font-size: 0.9rem;
-  min-height: 120px;
+  min-height: 0;
+}
+
+.deck-zone.forward .block-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.deck-zone.forward .preview-placeholder {
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .panel-resolve { max-height: 120px; flex: 0; min-height: 80px; }
@@ -351,9 +365,9 @@ select, .file-btn, button.file-btn {
 .deck-screen {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   gap: 4px;
-  min-height: 420px;
 }
 
 .deck-cockpit {
@@ -457,20 +471,26 @@ select, .file-btn, button.file-btn {
 }
 
 .deck-forward-primary {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .deck-forward-primary .deck-forward-stack {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  flex: 1 1 0;
   min-height: 0;
   gap: 8px;
+  overflow: hidden;
 }
 
-.deck-forward-body {
-  min-height: 240px;
+.deck-forward-primary .deck-forward-body {
+  min-height: 0;
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
 }
 
 .deck-screen-forward .deck-mfd {
@@ -482,33 +502,29 @@ select, .file-btn, button.file-btn {
 }
 
 .deck-mfd-page {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .deck-nav-hint {
+  flex: 0 0 auto;
   font-size: 0.68rem;
-  padding: 2px 8px 6px;
+  padding: 6px 8px 2px;
+  text-align: right;
+  border-top: 1px dashed var(--border);
 }
 
 .deck-forward {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 80px;
-  max-height: 26%;
-}
-
-.deck-forward-body {
-  flex: 1;
-  display: flex;
-  gap: 8px;
-  min-height: 64px;
+  min-height: 0;
 }
 
 .deck-mfd {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -556,8 +572,8 @@ select, .file-btn, button.file-btn {
 .deck-mfd-project-row {
   display: flex;
   gap: 8px;
-  height: 100%;
-  min-height: 160px;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .deck-mfd-row {
@@ -568,7 +584,7 @@ select, .file-btn, button.file-btn {
 }
 
 .deck-mfd-main {
-  flex: 1 1 58%;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -580,8 +596,7 @@ select, .file-btn, button.file-btn {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 64px;
-  max-height: 16%;
+  min-height: 0;
 }
 
 .deck-zone {
@@ -595,7 +610,7 @@ select, .file-btn, button.file-btn {
   overflow: hidden;
 }
 
-.deck-zone.forward { flex: 1 1 0; min-height: 0; height: 100%; }
+.deck-zone.forward { flex: 1 1 0; min-height: 0; }
 .deck-zone.forward-dock {
   min-height: 0;
 }
@@ -613,10 +628,10 @@ select, .file-btn, button.file-btn {
   padding: 0;
   min-height: 0;
 }
-.deck-zone.mfd-narrow { flex: 0 0 30%; max-width: 32%; }
-.deck-zone.mfd-wide { flex: 1 1 auto; min-width: 0; }
-.deck-zone.mfd-split { flex: 0 0 34%; max-width: 38%; }
-.deck-zone.mfd-tab-fill { flex: 1; min-height: 160px; }
+.deck-zone.mfd-narrow { flex: 0 0 16rem; min-width: 0; }
+.deck-zone.mfd-wide { flex: 1 1 0; min-width: 0; }
+.deck-zone.mfd-split { flex: 0 0 18rem; min-width: 0; }
+.deck-zone.mfd-tab-fill { flex: 1 1 0; min-height: 0; }
 .deck-zone.eicas { flex: 1; min-height: 48px; }
 
 .deck-zone-cap {
@@ -632,10 +647,20 @@ select, .file-btn, button.file-btn {
   overflow: auto;
 }
 
+.deck-zone.forward .deck-zone-body,
+.deck-zone.mfd-tab-fill .deck-zone-body {
+  display: flex;
+  flex-direction: column;
+}
+
 .deck-zone-body .sketch-block {
   border: none;
   border-radius: 0;
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .deck-zone-body .block-title { display: none; }
@@ -711,8 +736,13 @@ select, .file-btn, button.file-btn {
 }
 
 .data-lab-repl-only {
-  min-height: 120px;
+  min-height: 0;
   padding: 12px;
+}
+
+.deck-zone.forward-dock .deck-zone-body {
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .data-lab-grid {
@@ -807,9 +837,8 @@ select, .file-btn, button.file-btn {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
-  height: 100%;
   border: 1px dashed var(--border);
   border-radius: 10px;
   background: radial-gradient(circle at 30% 20%, #2a3140 0%, var(--bg) 55%);
@@ -818,10 +847,9 @@ select, .file-btn, button.file-btn {
 
 .graph-canvas {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   width: 100%;
-  min-height: min(62vh, 720px);
-  height: 100%;
+  min-height: 0;
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg);
@@ -839,8 +867,8 @@ select, .file-btn, button.file-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 240px;
+  flex: 1 1 0;
+  min-height: 0;
   font-size: 0.85rem;
 }
 
