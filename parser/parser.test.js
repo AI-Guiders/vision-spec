@@ -12,7 +12,7 @@ const examplePath = path.join(__dirname, "..", "examples", "dashspec-studio.visi
 test("parse dashspec-studio example", async () => {
   const doc = await composeVisionFile(examplePath);
   assert.equal(doc.id, "dashspec-studio");
-  assert.equal(doc.screens.length, 3);
+  assert.equal(doc.screens.length, 2);
   assert.equal(doc.screens.find((s) => s.id === "command-palette")?.overlay, true);
   assert.ok(doc.plugins.includes("aiguiders-mental-model"));
   assert.equal(doc.screens[0].deck?.preset, "report-author");
@@ -20,8 +20,8 @@ test("parse dashspec-studio example", async () => {
   assert.ok(doc.fixtures["spec-tree"].nodes.length >= 1);
   assert.ok(doc.componentRegistry?.rows?.some((r) => r.id === "spec-tree"));
   assert.ok(doc.presentations["spec-tree"]?.kinds?.length >= 3);
-  assert.ok(doc.transitions.some((t) => t.when === "Ctrl+K"));
-  assert.ok(doc.transitions.some((t) => t.when === "F12"));
+  assert.ok(doc.transitions.some((t) => t.when === "Ctrl+Q"));
+  assert.ok(!doc.transitions.some((t) => t.when === "F12"));
 });
 
 test("entry screen is non-overlay Forward deck", async () => {

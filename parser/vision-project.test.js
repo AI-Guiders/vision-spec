@@ -32,7 +32,7 @@ test("composeVisionProject matches composeVisionFile for dashspec-studio", async
   const examples = path.join(__dirname, "..", "examples");
   const fromProject = await composeVisionProject(path.join(examples, "dashspec-studio.visionproj"));
   assert.equal(fromProject.id, "dashspec-studio");
-  assert.equal(fromProject.screens.length, 3);
+  assert.equal(fromProject.screens.length, 2);
   assert.ok(fromProject.componentRegistry?.rows?.some((r) => r.id === "spec-tree"));
 });
 

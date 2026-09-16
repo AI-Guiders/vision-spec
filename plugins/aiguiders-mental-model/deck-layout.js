@@ -21,6 +21,38 @@ export function deckScreenShellStyle() {
   };
 }
 
+export function deckMultiHostShellStyle() {
+  return {
+    ...deckScreenShellStyle(),
+    gap: "6px",
+  };
+}
+
+export function deckHostsRowStyle() {
+  return {
+    flex: "1 1 0",
+    minHeight: "0",
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+    gap: "8px",
+    alignItems: "stretch",
+  };
+}
+
+export function deckHostColumnStyle() {
+  return {
+    minWidth: "0",
+    minHeight: "0",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    border: "1px dashed var(--border)",
+    borderRadius: "8px",
+    padding: "4px",
+    overflow: "hidden",
+  };
+}
+
 export function deckBandAutoStyle() {
   return { flex: "0 0 auto" };
 }

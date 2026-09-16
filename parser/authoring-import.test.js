@@ -66,7 +66,7 @@ test("wire import federation/vision/icon-defaults resolves", async () => {
 test("compose dashspec-studio leaf + imports", async () => {
   const doc = await composeVisionFile(path.join(__dirname, "..", "examples", "dashspec-studio.vision"));
   assert.equal(doc.id, "dashspec-studio");
-  assert.equal(doc.screens.length, 3);
+  assert.equal(doc.screens.length, 2);
   assert.ok(doc.componentRegistry?.rows?.some((r) => r.id === "spec-tree"));
   assert.ok(doc.presentations["spec-tree"]?.kinds?.length >= 3);
   assert.ok(doc.fixtures["script-pad"]);
@@ -89,6 +89,6 @@ test("composeVisionFromMap matches composeVisionFile for dashspec-studio", async
 test("composeVisionProject loads dashspec-studio via manifest", async () => {
   const doc = await composeVisionProject(path.join(__dirname, "..", "examples", "dashspec-studio.visionproj"));
   assert.equal(doc.id, "dashspec-studio");
-  assert.equal(doc.screens.length, 3);
+  assert.equal(doc.screens.length, 2);
 });
 

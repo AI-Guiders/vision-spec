@@ -7,6 +7,9 @@
 import {
   applyDeckStyle,
   deckBandAutoStyle,
+  deckHostColumnStyle,
+  deckHostsRowStyle,
+  deckMultiHostShellStyle,
   deckPrimaryBandStyle,
   deckScreenShellStyle,
   forwardBodyStyle,
@@ -18,6 +21,7 @@ import {
   zonePlacementStyle,
 } from "./deck-layout.js";
 import { MENTAL_MODEL_TERMS } from "./terminology.js";
+import { hostBandForGroup, isMultiHostTopology, parseTopologyGroups } from "./topology.js";
 
 function mfdTabBindings(deck) {
   if (deck?.mfdTabBindings?.length) return deck.mfdTabBindings;
@@ -31,17 +35,44 @@ export function renderDeckScreen(screen, helpers) {
   const { renderZone, labelForZone, deckBandForZone } = helpers;
   const bandFor = (zoneId, fallback) => deckBandForZone?.(zoneId) ?? fallback;
 
+  const multiHost = isMultiHostTopology(deck.topology);
   const root = document.createElement("div");
-  root.className = "deck-screen" + (screen.mfdPage ? " deck-screen-mfd" : " deck-screen-forward");
+  root.className =
+    "deck-screen" +
+    (multiHost ? " deck-screen-multihost" : screen.mfdPage ? " deck-screen-mfd" : " deck-screen-forward");
   root.dataset.preset = deck.preset ?? "";
   root.dataset.topology = deck.topology ?? "";
-  applyDeckStyle(root, deckScreenShellStyle());
+  applyDeckStyle(root, multiHost ? deckMultiHostShellStyle() : deckScreenShellStyle());
 
   const cockpit = renderCockpit(deck);
   applyDeckStyle(cockpit, deckBandAutoStyle());
   root.appendChild(cockpit);
 
-  if (screen.mfdPage) {
+  if (multiHost) {
+    const hosts = document.createElement("div");
+    hosts.className = "deck-hosts";
+    applyDeckStyle(hosts, deckHostsRowStyle());
+    for (const group of parseTopologyGroups(deck.topology)) {
+      const band = hostBandForGroup(group);
+      const host = document.createElement("div");
+      host.className = "deck-host deck-host-" + (band ?? "unknown");
+      host.dataset.hostGroup = group;
+      applyDeckStyle(host, deckHostColumnStyle());
+      if (band === "mfd") {
+        host.appendChild(renderMfdBand(deck, screen, { ...helpers, multiHost: true }));
+      } else if (band === "forward") {
+        renderForwardCcl(host, deck, screen, helpers);
+        host.appendChild(renderForwardBand(deck, screen, { ...helpers, multiHost: true }));
+      } else {
+        const miss = document.createElement("div");
+        miss.className = "muted deck-host-unknown";
+        miss.textContent = group;
+        host.appendChild(miss);
+      }
+      hosts.appendChild(host);
+    }
+    root.appendChild(hosts);
+  } else if (screen.mfdPage) {
     root.appendChild(renderMfdBand(deck, screen, helpers));
   } else {
     renderForwardCcl(root, deck, screen, helpers);
@@ -107,9 +138,11 @@ function renderForwardBand(deck, screen, helpers) {
   }
 
   forward.appendChild(stack);
-  const hint = renderNavHint(MENTAL_MODEL_TERMS.navForwardToMfd);
-  applyDeckStyle(hint, deckBandAutoStyle());
-  forward.appendChild(hint);
+  if (!helpers.multiHost) {
+    const hint = renderNavHint(MENTAL_MODEL_TERMS.navForwardToMfd);
+    applyDeckStyle(hint, deckBandAutoStyle());
+    forward.appendChild(hint);
+  }
   return forward;
 }
 
@@ -122,9 +155,11 @@ function renderMfdBand(deck, screen, helpers) {
   mfd.className = "deck-mfd deck-mfd-page";
   applyDeckStyle(mfd, deckPrimaryBandStyle());
   mfd.appendChild(bandLabel(MENTAL_MODEL_TERMS.mfdBand));
-  const nav = renderNavHint(MENTAL_MODEL_TERMS.navMfdToForward);
-  applyDeckStyle(nav, deckBandAutoStyle());
-  mfd.appendChild(nav);
+  if (!helpers.multiHost) {
+    const nav = renderNavHint(MENTAL_MODEL_TERMS.navMfdToForward);
+    applyDeckStyle(nav, deckBandAutoStyle());
+    mfd.appendChild(nav);
+  }
 
   const tabBar = document.createElement("div");
   tabBar.className = "deck-mfd-tabs";

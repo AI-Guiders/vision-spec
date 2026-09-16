@@ -1,5 +1,5 @@
 # DashSpec Studio — vision alignment (leaf scenario)
-# Federation cockpit: PFD orient · Forward work · MFD instruments (separate screen)
+# Federation cockpit: PFD orient · dual hosts (MFD)(F) — not OneOf (F/M)
 
 use aiguiders-mental-model
 
@@ -13,7 +13,7 @@ vision dashspec-studio
 catalog dashspec-studio
 defaults
   command.surfaces = palette, ccl.filter
-  binding.chord-root = Ctrl+K
+  binding.chord-root = Ctrl+Q
   grammar.keyboard.binding = keyboard-key-gesture
 end defaults
 phrases table
@@ -51,14 +51,10 @@ screen studio
   forward ccl | editor
   pfd demo-soak | main
   dock data-lab
+  mfd-tabs Project:spec-tree | Sources:environment-readiness | Pad:script-pad | Preview:report-preview | Layout:layout-board
   component ccl search
   component editor tabs
   component data-lab repl
-
-screen studio-mfd
-  mfd-page
-  use-deck report-author
-  mfd-tabs Project:spec-tree | Sources:environment-readiness | Pad:script-pad | Preview:report-preview | Layout:layout-board
   component spec-tree tree
   component environment-readiness panel
   component script-pad pad
@@ -69,13 +65,10 @@ screen studio-mfd
 screen command-palette overlay
   component palette command-list
 
-go studio -> command-palette when Ctrl+K
+go studio -> command-palette when Ctrl+Q
 go command-palette -> studio when Escape
 go command-palette -> studio when select-command
   then focus editor open selected file
-
-go studio -> studio-mfd when F12
-go studio-mfd -> studio when F12
 
 on spec-tree double-click file -> editor
   then open tab and show resolve

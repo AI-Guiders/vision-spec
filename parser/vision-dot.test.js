@@ -4,7 +4,6 @@ import { buildVisionDotGraph, dotNodeName } from "./vision-dot.js";
 import { instance } from "@viz-js/viz";
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,13 +19,11 @@ test("buildVisionDotGraph nests components in screen clusters", async () => {
   const transitionGraph = buildTransitionGraph(doc);
   const { graph, idMap } = buildVisionDotGraph(transitionGraph);
 
-  assert.ok(graph.subgraphs?.length >= 3);
-  const mfdCluster = graph.subgraphs.find((s) => s.name === `cluster_${dotNodeName("studio-mfd")}`);
-  const fwdCluster = graph.subgraphs.find((s) => s.name === `cluster_${dotNodeName("studio")}`);
-  assert.ok(mfdCluster);
-  assert.ok(fwdCluster);
-  assert.ok(mfdCluster.nodes.some((n) => n.name === dotNodeName("component:spec-tree")));
-  assert.ok(fwdCluster.nodes.some((n) => n.name === dotNodeName("component:editor")));
+  assert.ok(graph.subgraphs?.length >= 2);
+  const studioCluster = graph.subgraphs.find((s) => s.name === `cluster_${dotNodeName("studio")}`);
+  assert.ok(studioCluster);
+  assert.ok(studioCluster.nodes.some((n) => n.name === dotNodeName("component:spec-tree")));
+  assert.ok(studioCluster.nodes.some((n) => n.name === dotNodeName("component:editor")));
 
   const onEdge = graph.edges.find(
     (e) =>
@@ -36,12 +33,10 @@ test("buildVisionDotGraph nests components in screen clusters", async () => {
   assert.ok(onEdge);
   assert.equal(onEdge.attributes?.style, "dashed");
 
-  const f12 = graph.edges.find((e) => e.attributes?.label === "F12");
-  assert.ok(f12);
-  assert.equal(f12.attributes?.ltail, `cluster_${dotNodeName("studio")}`);
-  assert.equal(f12.attributes?.lhead, `cluster_${dotNodeName("studio-mfd")}`);
+  const palette = graph.edges.find((e) => e.attributes?.label === "Ctrl+Q");
+  assert.ok(palette);
 
-  assert.equal(idMap.get(dotNodeName("component:spec-tree"))?.host, "studio-mfd");
+  assert.equal(idMap.get(dotNodeName("component:spec-tree"))?.host, "studio");
   assert.equal(idMap.get(`cluster_${dotNodeName("studio")}`)?.id, "studio");
 });
 

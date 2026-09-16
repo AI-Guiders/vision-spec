@@ -482,6 +482,17 @@ select, .file-btn, button.file-btn {
   display: none;
 }
 
+.deck-screen-multihost .deck-hosts {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.deck-screen-multihost .deck-host-forward .deck-forward-primary,
+.deck-screen-multihost .deck-host-mfd .deck-mfd-page {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 
 .deck-nav-hint {
   flex: 0 0 auto;
