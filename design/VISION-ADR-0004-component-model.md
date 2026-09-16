@@ -1,4 +1,4 @@
-# VISION-ADR-0004 — Component model (screens, deck zones, presentation)
+﻿# VISION-ADR-0004 — Component model (screens, deck zones, presentation)
 
 | | |
 |---|---|
@@ -335,13 +335,13 @@ Warnings do not fail parse in sketch mode; errors fail `npm test`.
 ### Implementation checklist (single vertical PR after ADR accepted)
 
 1. [x] `design/VISION-ADR-0004-component-model.md` → **Accepted**
-2. [ ] Parser: `component`, `components`, `presentation`, typed `fixture`, IR migration
+2. [x] Parser: `component`, `components`, `presentation`, typed `fixture`, IR migration
 3. [ ] `vision-graph.js` / `vision-dot.js`: `component:` nodes
-4. [ ] Player: `renderComponent`, tree presentation, zone labels from presentation
+4. [x] Player: `renderComponent`, tree presentation, zone labels from presentation
 5. [ ] `@vscode/codicons` dep + `player/icon-registry.js` + tree row layout (codicon + label + indent)
 6. [ ] `sketch.css`: `--artifact-*` color tokens
-7. [ ] Rewrite `examples/dashspec-studio.vision` + `minimal.vision`
-8. [ ] Rewrite tests (`parser.test.js`, `graph.test.js`, `mental-model.test.js`, `vision-dot.test.js`, fixture tests)
+7. [x] Rewrite `examples/dashspec-studio.vision` + `minimal.vision`
+8. [x] Rewrite tests (`parser.test.js`, `graph.test.js`, `mental-model.test.js`, `vision-dot.test.js`, fixture tests)
 9. [ ] `README.md` + `vision-v0.md` sync
 10. [ ] Cross-link from STUDIO-ADR-0002 → VISION-ADR-0004 (optional footnote PR in dash-spec-studio)
 
