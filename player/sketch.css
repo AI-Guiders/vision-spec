@@ -44,7 +44,16 @@ body {
 .brand { display: flex; gap: 10px; align-items: baseline; }
 .muted { color: var(--muted); font-size: 0.9rem; }
 
-.toolbar-actions { display: flex; gap: 8px; align-items: center; }
+.toolbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.project-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 0 16px 8px;
+  font-size: 0.82rem;
+}
+
+.project-hint code { font-size: 0.9em; }
 
 select, .file-btn {
   background: var(--panel);

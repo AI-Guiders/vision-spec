@@ -26,11 +26,13 @@
         Open .vision
         <input type="file" id="file-input" accept=".vision,.txt,text/plain" hidden />
       </label>
-      <label class="file-btn">
+      <label class="file-btn" id="project-open-btn" title="1) Pick .visionproj  2) Pick the folder that contains it">
         Open project
-        <input type="file" id="project-input" webkitdirectory multiple hidden />
+        <input type="file" id="project-manifest-input" accept=".visionproj" hidden />
       </label>
+      <input type="file" id="project-dir-input" webkitdirectory multiple hidden />
     </div>
+    <p id="project-hint" class="project-hint muted">Local project: pick <code>.visionproj</code>, then the folder with it. Built-in example: use dropdown above.</p>
   </header>
 
   <main id="stage" class="stage" tabindex="0" aria-label="Sketch stage"></main>

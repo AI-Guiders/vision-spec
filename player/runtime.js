@@ -22,7 +22,9 @@ const logList = document.getElementById("log-list");
 const titleEl = document.getElementById("vision-title");
 const exampleSelect = document.getElementById("example-select");
 const fileInput = document.getElementById("file-input");
-const projectInput = document.getElementById("project-input");
+const projectManifestInput = document.getElementById("project-manifest-input");
+const projectDirInput = document.getElementById("project-dir-input");
+const projectHint = document.getElementById("project-hint");
 const viewModeSelect = document.getElementById("view-mode");
 
 /** @type {ReturnType<parseVision> | null} */
@@ -46,7 +48,8 @@ function showLoadError(err) {
 async function init() {
   exampleSelect.addEventListener("change", () => loadUrl(exampleSelect.value));
   fileInput.addEventListener("change", onFilePick);
-  projectInput.addEventListener("change", onProjectPick);
+  projectManifestInput.addEventListener("change", onProjectManifestPick);
+  projectDirInput.addEventListener("change", onProjectDirPick);
   viewModeSelect.addEventListener("change", () => {
     viewMode = viewModeSelect.value;
     render();
@@ -108,6 +111,22 @@ function onFilePick(ev) {
   reader.readAsText(file);
 }
 
+/** @type {{ name: string, source: string } | null} */
+let pendingProjectManifest = null;
+
+async function onProjectManifestPick(ev) {
+  const file = ev.target.files?.[0];
+  ev.target.value = "";
+  if (!file) return;
+  pendingProjectManifest = { name: file.name, source: await file.text() };
+  titleEl.textContent = `Selected ${file.name} — pick the folder that contains it…`;
+  if (projectHint) {
+    projectHint.textContent =
+      "Step 2: in the folder dialog click Upload on the directory with your .visionproj (browser hides files — that is normal).";
+  }
+  projectDirInput.click();
+}
+
 function selectManifestPath(manifestPaths) {
   return [...manifestPaths].sort((a, b) => {
     const depthA = a.split("/").length;
@@ -117,7 +136,7 @@ function selectManifestPath(manifestPaths) {
   })[0];
 }
 
-async function onProjectPick(ev) {
+async function onProjectDirPick(ev) {
   const fileList = ev.target.files;
   if (!fileList?.length) return;
   titleEl.textContent = "Loading project…";
@@ -133,8 +152,13 @@ async function onProjectPick(ev) {
       manifestTexts[rel] = await file.text();
     }
     if (!manifestPaths.length) {
+      if (pendingProjectManifest) {
+        throw new Error(
+          `Folder upload did not include ${pendingProjectManifest.name}. Click Upload on the directory that contains the .visionproj (not a subfolder).`,
+        );
+      }
       throw new Error(
-        "V-P003: No .visionproj in selection — select the project directory containing a manifest",
+        "V-P003: No .visionproj in selection — pick .visionproj first, then Upload on the folder that contains it",
       );
     }
     const manifestRel = selectManifestPath(manifestPaths);
@@ -161,10 +185,13 @@ async function onProjectPick(ev) {
     showLoadError(err);
   } finally {
     ev.target.value = "";
+    pendingProjectManifest = null;
+    if (projectHint) {
+      projectHint.innerHTML =
+        'Local project: pick <code>.visionproj</code>, then the folder with it. Built-in example: use dropdown above.';
+    }
   }
 }
-
-
 
 function hasImportDirectives(source) {
   return /^\s*import\s+/m.test(source) || /^\s*!include\s+/m.test(source);
@@ -199,7 +226,7 @@ async function loadText(source, fileName = "") {
       return;
     }
     throw new Error(
-      "This .vision file uses import directives. Use Open project and select the directory containing a .visionproj manifest.",
+      "This .vision file uses import directives. Use Open project: pick the .visionproj file, then Upload on the folder that contains it.",
     );
   }
   doc = await parseVision(source, { gdlEndpoint: "/__vision/gdl" });
