@@ -19,6 +19,7 @@ end defaults
 phrases table
   | name            | phrase               |
   | save-doc        | save active document |
+  | format-doc      | format document      |
   | open-demo-soak  | open demo_soak       |
   | open-analytics  | open demo_analytics  |
   | focus-preview   | focus preview        |
@@ -27,6 +28,7 @@ end phrases
 commands table
   | command         | phrase          | help                          |
   | doc.save        | save-doc        | Save active document          |
+  | doc.format      | format-doc      | Format active document        |
   | file.open-soak  | open-demo-soak  | Open demo_soak report         |
   | file.open-analytics | open-analytics | Open demo_analytics report |
   | view.preview    | focus-preview   | Focus report preview          |
@@ -34,7 +36,8 @@ commands table
 end commands
 bindings table
   | gesture | command  |
-  | Ctrl+S  | doc.save |
+  | Ctrl+S          | doc.save   |
+  | Ctrl+Shift+F    | doc.format |
 end bindings
 end catalog
 
@@ -74,3 +77,4 @@ on spec-tree double-click file -> editor
   then open tab and show resolve
 
 end
+
