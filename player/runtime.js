@@ -3,6 +3,10 @@ import { paletteRowsFromCatalog } from "../parser/gdl-ir.js";
 import { isLayoutBoundBlock } from "../parser/vision-graph.js";
 import { resolvePlugins } from "../parser/plugins.js";
 import { renderTransitionGraph } from "./transition-graph.js";
+import {
+  parseReadinessFixtureLines,
+  renderEnvironmentReadinessPage,
+} from "./environment-readiness-page.js";
 const stage = document.getElementById("stage");
 const overlayRoot = document.getElementById("overlay-root");
 const logList = document.getElementById("log-list");
@@ -36,7 +40,16 @@ async function init() {
   stage.addEventListener("keydown", onKeyDown);
   overlayRoot.addEventListener("keydown", onKeyDown);
 
-  await loadUrl(exampleSelect.value);
+  try {
+    await loadUrl(exampleSelect.value);
+  } catch (err) {
+    titleEl.textContent = "Load failed";
+    const errP = document.createElement("p");
+    errP.className = "load-error";
+    errP.textContent = String(err?.message ?? err);
+    stage.replaceChildren(errP);
+    log(String(err?.message ?? err));
+  }
 }
 
 async function loadUrl(url) {
@@ -98,7 +111,7 @@ function render() {
       },
     });
     stage.appendChild(graphWrap);
-    graphWrap.initGraph();
+    void graphWrap.initGraph();
     return;
   }
 
@@ -181,10 +194,6 @@ function renderScreen(screen, isOverlay) {
   }
 
   return root;
-}
-
-function screenHasCommandPalette(screen) {
-  return screen.blocks.some((b) => b.kind === "command-list");
 }
 
 function screenHasCommandPalette(screen) {
@@ -293,19 +302,35 @@ function renderRepl(container, fixtureId) {
   }
 }
 
+function splitDataLabFixtureLines(lines) {
+  /** @type {string[]} */
+  const readinessLines = [];
+  /** @type {string[]} */
+  const replLines = [];
+  for (const line of lines) {
+    if (/^\s*repl:/i.test(line)) replLines.push(line);
+    else readinessLines.push(line);
+  }
+  return { readinessLines, replLines };
+}
+
 function renderDataLab(container, fixtureId) {
   const lines = fixture(fixtureId);
+  const { readinessLines, replLines } = splitDataLabFixtureLines(lines);
+  const readinessRows = parseReadinessFixtureLines(readinessLines);
   container.className = "block-body data-lab-sketch";
   const grid = document.createElement("div");
   grid.className = "data-lab-grid";
 
   const sources = document.createElement("div");
-  sources.className = "data-lab-pane";
-  sources.innerHTML = `<div class="data-lab-pane-title">Sources</div><div class="data-lab-pane-body">${lines[0] ?? "connector …"}</div>`;
-
-  const schema = document.createElement("div");
-  schema.className = "data-lab-pane";
-  schema.innerHTML = `<div class="data-lab-pane-title">Schema</div><div class="data-lab-pane-body">${lines[1] ?? "schema tree …"}</div>`;
+  sources.className = "data-lab-pane data-lab-pane-er";
+  const sourcesTitle = document.createElement("div");
+  sourcesTitle.className = "data-lab-pane-title";
+  sourcesTitle.textContent = "Sources";
+  sources.appendChild(sourcesTitle);
+  const sourcesBody = document.createElement("div");
+  renderEnvironmentReadinessPage(sourcesBody, readinessRows);
+  sources.appendChild(sourcesBody);
 
   const repl = document.createElement("div");
   repl.className = "data-lab-pane data-lab-pane-wide";
@@ -315,17 +340,16 @@ function renderDataLab(container, fixtureId) {
   repl.appendChild(replTitle);
   const replBody = document.createElement("div");
   replBody.className = "data-lab-pane-body";
-  for (const line of lines.slice(2)) {
+  for (const line of replLines) {
     const div = document.createElement("div");
     div.className = "repl-line";
-    div.textContent = line;
+    div.textContent = line.replace(/^\s*repl:\s*/i, "");
     replBody.appendChild(div);
   }
-  if (lines.length <= 2) replBody.textContent = "SELECT … · grid";
+  if (!replLines.length) replBody.textContent = "SELECT … · grid";
   repl.appendChild(replBody);
 
   grid.appendChild(sources);
-  grid.appendChild(schema);
   grid.appendChild(repl);
   container.appendChild(grid);
 }
@@ -566,6 +590,7 @@ function onKeyDown(e) {
   if (e.key === "Escape") trigger = "Escape";
   else if (e.ctrlKey && e.key.toLowerCase() === "k") trigger = "Ctrl+K";
   else if (e.key === "Enter") trigger = "Enter";
+  else if (e.key === "F12") trigger = "F12";
   if (trigger) {
     e.preventDefault();
     transition(trigger);
@@ -626,3 +651,4 @@ function log(message) {
   li.textContent = message;
   logList.prepend(li);
 }
+

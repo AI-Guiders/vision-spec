@@ -39,6 +39,11 @@ export function resolveOnTarget(doc, sourceBlock, toToken) {
     return { toScreen: host.id, toBlock: toToken };
   }
 
+  const crossHost = doc.screens.find((s) => s.blocks.some((b) => b.id === toToken));
+  if (crossHost) {
+    return { toScreen: crossHost.id, toBlock: toToken };
+  }
+
   const screen = doc.screens.find((s) => s.id === toToken);
   if (screen) return { toScreen: toToken, toBlock: null };
 
@@ -50,13 +55,22 @@ export function buildTransitionGraph(doc) {
     id: s.id,
     kind: "screen",
     overlay: s.overlay,
-    label: s.deck?.preset ? `${s.id} · ${s.deck.preset}` : s.id,
+    label: s.mfdPage
+      ? `${s.id} · MFD`
+      : s.deck?.preset
+        ? `${s.id} · ${s.deck.preset}`
+        : s.id,
   }));
 
   const blockIds = new Set();
   for (const h of doc.handlers) {
     blockIds.add(h.block);
     if (h.toBlock) blockIds.add(h.toBlock);
+  }
+  for (const screen of doc.screens) {
+    for (const block of screen.blocks) {
+      if (block.id && isLayoutBoundBlock(block, screen, doc)) blockIds.add(block.id);
+    }
   }
 
   for (const blockId of blockIds) {
