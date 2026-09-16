@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
+| **Status** | Accepted |
 | **Date** | 2026-09-16 |
 | **Relates to** | [VISION-ADR-0001](./VISION-ADR-0001-charter.md) · [VISION-ADR-0003](./VISION-ADR-0003-gdl-inline-sections.md) · [VISION-ADR-0004](./VISION-ADR-0004-component-model.md) · [GUIDERS-ADR-0048](https://github.com/AI-Guiders/guiders-platform/blob/main/docs/adr/GUIDERS-ADR-0048-authoring-quarry-family.md) · [GUIDERS-ADR-0051](https://github.com/AI-Guiders/guiders-platform/blob/main/docs/adr/GUIDERS-ADR-0051-authoring-project-abstraction.md) · [GUIDERS-ADR-0052](https://github.com/AI-Guiders/guiders-platform/blob/main/docs/adr/GUIDERS-ADR-0052-unified-import-directive.md) · [GUIDERS-ADR-0059](https://github.com/AI-Guiders/guiders-platform/blob/main/docs/adr/GUIDERS-ADR-0059-gdl-hyperlane.md) · [DASHSPEC-ADR-0017](https://github.com/AI-Guiders/dash-spec/blob/main/design/DASHSPEC-ADR-0017-file-includes-and-stdlib.md) |
 | **Amends** | [VISION-ADR-0003](./VISION-ADR-0003-gdl-inline-sections.md) — self-contained rule scoped to **leaf** documents; planet packs compose via `import`. |
@@ -111,9 +111,13 @@ v1 sketch player: **entry file directory** is project root.
 
 ```text
 vision-spec/examples/
-  dashspec-studio.vision          # leaf — scenario
+  dashspec-studio.vision                 # leaf — scenario + catalog/deck
   authoring/
-    dashspec-studio.planet.vision # pack — components, presentations, fixtures
+    dashspec-studio.base.vision            # pack — defaults, icon-libraries, components registry
+    components/
+      spec-tree.vision                     # presentation + fixture (one component per file)
+      data-lab.vision
+      script-pad.vision
 ```
 
 **Leaf** (scenario only):
@@ -122,7 +126,8 @@ vision-spec/examples/
 vision dashspec-studio
   use aiguiders-mental-model
 
-import "authoring/dashspec-studio.planet.vision"
+import "authoring/dashspec-studio.base.vision"
+import "authoring/components/*.vision"
 
 catalog dashspec-studio
   …
@@ -137,18 +142,26 @@ on spec-tree double-click file -> editor
 end
 ```
 
-**Pack** (no screens / go / on):
+**Base pack** (registry + icon defaults):
 
 ```text
 defaults
   icon.library = codicons
 end defaults
 
+icon-libraries
+  codicons source npm:@vscode/codicons
+end icon-libraries
+
 components dashspec-studio
   table zone
   …
 end components
+```
 
+**Component pack** (`authoring/components/spec-tree.vision`):
+
+```text
 presentation spec-tree
   …
 end presentation
@@ -208,14 +221,14 @@ None until pack split PR. Monolithic example stays valid until then.
 
 ### Implementation checklist
 
-1. [ ] Accept ADR-0005
-2. [ ] `parser/authoring-import.js` + conformance tests
-3. [ ] `parser/vision-compose.js` — merge + `V-I*`
-4. [ ] `parseVision` → compose
-5. [ ] Play-server resolves logical imports
-6. [ ] Split `dashspec-studio.vision` → leaf + pack
-7. [ ] Update `vision-v0.md`, ADR-0003 cross-link
-8. [ ] `npm test` green
+1. [x] Accept ADR-0005
+2. [x] `parser/authoring-import.js` + conformance tests
+3. [x] `parser/vision-compose.js` — merge + `V-I*`
+4. [x] `parseVision` → compose
+5. [x] Play-server resolves logical imports
+6. [x] Split `dashspec-studio.vision` → leaf + pack
+7. [x] Update `vision-v0.md`, ADR-0003 cross-link
+8. [x] `npm test` green
 
 ## Alternatives considered
 
