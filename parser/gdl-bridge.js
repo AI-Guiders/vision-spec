@@ -1,23 +1,16 @@
 /**
- * Routes GDL text to federation parsers via tools/VisionGdlBridge (F# CatalogParser / DeckParser).
+ * Node GDL bridge — federation parsers via tools/VisionGdlBridge (F#).
  */
 
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertClean, invokeGdlBridgeAsync as invokeGdlBridgeAsyncCore } from "./gdl-bridge-core.js";
+
+export { assertClean } from "./gdl-bridge-core.js";
 
 const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const BRIDGE_PROJECT = path.join(ROOT, "tools", "VisionGdlBridge", "VisionGdlBridge.fsproj");
-
-/** @param {unknown} payload @param {string} kind */
-function assertClean(payload, kind) {
-  const diagnostics = payload?.diagnostics;
-  if (Array.isArray(diagnostics) && diagnostics.length) {
-    const msg = diagnostics.map((d) => `${d.line}: ${d.message}`).join("; ");
-    throw new Error(`VisionGdlBridge ${kind}: ${msg}`);
-  }
-  return payload;
-}
 
 /** @param {string} kind @param {string} gdlText */
 export function invokeGdlBridgeSync(kind, gdlText) {
@@ -45,13 +38,7 @@ export function invokeGdlBridgeSync(kind, gdlText) {
 /** @param {string} kind @param {string} gdlText @param {string | undefined} endpoint */
 export async function invokeGdlBridgeAsync(kind, gdlText, endpoint) {
   if (!endpoint) return invokeGdlBridgeSync(kind, gdlText);
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, text: gdlText }),
-  });
-  if (!res.ok) throw new Error(`VisionGdlBridge HTTP ${res.status}: ${await res.text()}`);
-  return assertClean(await res.json(), kind);
+  return invokeGdlBridgeAsyncCore(kind, gdlText, endpoint);
 }
 
 /** @param {string} gdlText */
