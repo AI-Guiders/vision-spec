@@ -15,6 +15,7 @@ const EICAS_LINE = /^eicas\s+(\S+)\s*$/i;
 /** report-author MFD tab id → zone id */
 const REPORT_AUTHOR_TAB_ZONES = {
   Project: "spec-tree",
+  Sources: "environment-readiness",
   SQL: "data-lab",
   Pad: "script-pad",
   Preview: "report-preview",

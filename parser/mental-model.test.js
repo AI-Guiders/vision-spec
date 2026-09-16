@@ -22,7 +22,7 @@ test("mental-model plugin parses federation cockpit deck lines", async () => {
   assert.equal(studio.deck.eicas, "resolve");
   assert.equal(studio.mfdPage, undefined);
   assert.equal(mfd?.mfdPage, true);
-  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "SQL", "Pad", "Preview"]);
+  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "SQL", "Pad", "Preview"]);
   assert.equal(mfd?.deck?.mfdSplit, "data-lab");
 });
 
@@ -33,6 +33,7 @@ test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
   const zones = deckZoneIds(mfdScreen, plugins);
   assert.ok(zones.has("spec-tree"));
   assert.ok(zones.has("report-preview"));
+  assert.ok(zones.has("environment-readiness"));
   assert.ok(zones.has("data-lab"));
   assert.ok(zones.has("resolve"));
   assert.ok(zones.has("script-pad"));
@@ -47,9 +48,11 @@ test("pad component lives on studio-mfd screen", async () => {
   assert.ok(fixtureKeylines(doc.fixtures["script-pad"]).length >= 2);
 });
 
-test("data-lab repl uses three-pane SQL Browser sketch", async () => {
+test("environment-readiness is separate MFD fixture from data-lab", async () => {
   const doc = await composeVisionFile(examplePath);
-  assert.ok(fixtureKeylines(doc.fixtures["data-lab"]).length >= 3);
+  assert.ok(fixtureKeylines(doc.fixtures["environment-readiness"]).length >= 2);
+  assert.ok(fixtureKeylines(doc.fixtures["data-lab"]).some((l) => /repl/i.test(l)));
+  assert.ok(!fixtureKeylines(doc.fixtures["data-lab"]).some((l) => /^connector\b/i.test(l)));
 });
 
 test("F12 transitions between Forward and MFD screens", async () => {

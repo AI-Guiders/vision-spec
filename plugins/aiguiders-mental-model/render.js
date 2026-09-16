@@ -5,6 +5,7 @@
 
 const REPORT_AUTHOR_TABS = [
   { id: "Project", label: "Project" },
+  { id: "Sources", label: "Sources" },
   { id: "SQL", label: "SQL" },
   { id: "Pad", label: "Pad" },
   { id: "Preview", label: "Preview" },
@@ -13,6 +14,7 @@ const REPORT_AUTHOR_TABS = [
 
 const TAB_ZONE = {
   Project: "spec-tree",
+  Sources: "environment-readiness",
   SQL: "data-lab",
   Pad: "script-pad",
   Preview: "report-preview",

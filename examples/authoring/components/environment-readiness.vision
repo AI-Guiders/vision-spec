@@ -1,0 +1,4 @@
+fixture environment-readiness
+  connector demo-db
+  schema reports / cards / binds
+end fixture

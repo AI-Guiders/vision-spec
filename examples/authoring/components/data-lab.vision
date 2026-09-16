@@ -1,5 +1,3 @@
 fixture data-lab
-  connector demo-db
-  schema reports / cards / binds
   repl SELECT COUNT(*) FROM reports
 end fixture

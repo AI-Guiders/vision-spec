@@ -2,10 +2,11 @@
 
 components dashspec-studio
   table zone
-  | id             | kind    | label          |
-  | data-lab       | repl    | SQL Browser    |
-  | script-pad     | pad     | Script Pad     |
-  | report-preview | preview | Report Preview |
-  | resolve        | panel   | Resolve        |
-  | layout-board   | panel   | Layout board   |
+  | id                   | kind    | label                  |
+  | environment-readiness | panel   | Environment readiness  |
+  | data-lab             | repl    | SQL Browser            |
+  | script-pad           | pad     | Script Pad             |
+  | report-preview       | preview | Report Preview         |
+  | resolve              | panel   | Resolve                |
+  | layout-board         | panel   | Layout board           |
 end components

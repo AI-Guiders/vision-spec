@@ -626,6 +626,7 @@ select, .file-btn, button.file-btn {
   color: var(--muted);
 }
 
+.readiness-page-root,
 .readiness-page {
   display: flex;
   flex-direction: column;
@@ -682,6 +683,11 @@ select, .file-btn, button.file-btn {
 .readiness-detail {
   font-size: 0.65rem;
   font-family: ui-monospace, monospace;
+}
+
+.data-lab-repl-only {
+  min-height: 120px;
+  padding: 12px;
 }
 
 .data-lab-grid {

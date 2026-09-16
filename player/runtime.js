@@ -380,7 +380,11 @@ function renderComponent(comp, screen) {
       renderCommandList(body);
       break;
     case "panel":
-      if (comp.id === "resolve") {
+      if (comp.id === "environment-readiness") {
+        wrap.classList.add("readiness-quiet");
+        title.remove();
+        renderEnvironmentReadiness(body, comp.id);
+      } else if (comp.id === "resolve") {
         wrap.classList.add("resolve-quiet");
         title.remove();
       } else if (comp.id === "layout-board") {
@@ -422,6 +426,7 @@ function zoneLabel(zoneId) {
     "spec-tree": "Project Browser",
     editor: "Document editor",
     "report-preview": "Report preview",
+    "environment-readiness": "Готовность окружения",
     "data-lab": "SQL Browser",
     "script-pad": "Script Pad",
     "layout-board": "Layout board",
@@ -454,44 +459,19 @@ function normalizeReadinessKeyline(line) {
   return t;
 }
 
-function splitDataLabFixtureLines(lines) {
-  /** @type {string[]} */
-  const readinessLines = [];
-  /** @type {string[]} */
-  const replLines = [];
-  for (const line of lines) {
-    if (/^\s*repl\b/i.test(line) || /^\s*repl:/i.test(line)) replLines.push(line);
-    else readinessLines.push(normalizeReadinessKeyline(line));
-  }
-  return { readinessLines, replLines };
+function renderEnvironmentReadiness(container, fixtureId) {
+  const lines = fixture(fixtureId).map(normalizeReadinessKeyline);
+  const rows = parseReadinessFixtureLines(lines);
+  container.className = "block-body readiness-page-root";
+  renderEnvironmentReadinessPage(container, rows);
 }
 
 function renderDataLab(container, fixtureId) {
   const lines = fixture(fixtureId);
-  const { readinessLines, replLines } = splitDataLabFixtureLines(lines);
-  const readinessRows = parseReadinessFixtureLines(readinessLines);
+  const replLines = lines.filter((line) => /^\s*repl\b/i.test(line) || /^\s*repl:/i.test(line));
   container.className = "block-body data-lab-sketch";
-  const grid = document.createElement("div");
-  grid.className = "data-lab-grid";
-
-  const sources = document.createElement("div");
-  sources.className = "data-lab-pane data-lab-pane-er";
-  const sourcesTitle = document.createElement("div");
-  sourcesTitle.className = "data-lab-pane-title";
-  sourcesTitle.textContent = "Sources";
-  sources.appendChild(sourcesTitle);
-  const sourcesBody = document.createElement("div");
-  renderEnvironmentReadinessPage(sourcesBody, readinessRows);
-  sources.appendChild(sourcesBody);
-
-  const repl = document.createElement("div");
-  repl.className = "data-lab-pane data-lab-pane-wide";
-  const replTitle = document.createElement("div");
-  replTitle.className = "data-lab-pane-title";
-  replTitle.textContent = "REPL + grid";
-  repl.appendChild(replTitle);
   const replBody = document.createElement("div");
-  replBody.className = "data-lab-pane-body";
+  replBody.className = "data-lab-pane-body data-lab-repl-only";
   for (const line of replLines) {
     const div = document.createElement("div");
     div.className = "repl-line";
@@ -499,11 +479,7 @@ function renderDataLab(container, fixtureId) {
     replBody.appendChild(div);
   }
   if (!replLines.length) replBody.textContent = "SELECT … · grid";
-  repl.appendChild(replBody);
-
-  grid.appendChild(sources);
-  grid.appendChild(repl);
-  container.appendChild(grid);
+  container.appendChild(replBody);
 }
 
 function renderPad(container, fixtureId) {
