@@ -34,6 +34,15 @@ let viewMode = "sketch";
 
 init();
 
+function showLoadError(err) {
+  titleEl.textContent = "Load failed";
+  const errP = document.createElement("p");
+  errP.className = "load-error";
+  errP.textContent = String(err?.message ?? err);
+  stage.replaceChildren(errP);
+  log(String(err?.message ?? err));
+}
+
 async function init() {
   exampleSelect.addEventListener("change", () => loadUrl(exampleSelect.value));
   fileInput.addEventListener("change", onFilePick);
@@ -48,12 +57,7 @@ async function init() {
   try {
     await loadUrl(exampleSelect.value);
   } catch (err) {
-    titleEl.textContent = "Load failed";
-    const errP = document.createElement("p");
-    errP.className = "load-error";
-    errP.textContent = String(err?.message ?? err);
-    stage.replaceChildren(errP);
-    log(String(err?.message ?? err));
+    showLoadError(err);
   }
 }
 
@@ -79,16 +83,32 @@ async function loadUrl(url) {
 function onFilePick(ev) {
   const file = ev.target.files?.[0];
   if (!file) return;
+  titleEl.textContent = `Loading ${file.name}…`;
   const reader = new FileReader();
-  reader.onload = async () => loadText(String(reader.result), file.name);
+  reader.onload = async () => {
+    try {
+      await loadText(String(reader.result), file.name);
+    } catch (err) {
+      showLoadError(err);
+    } finally {
+      ev.target.value = "";
+    }
+  };
+  reader.onerror = () => showLoadError(reader.error ?? "Failed to read file");
   reader.readAsText(file);
 }
 
-function onFolderPick(ev) {
+async function onFolderPick(ev) {
   const fileList = ev.target.files;
   if (!fileList?.length) return;
-  loadProject(fileList);
-  ev.target.value = "";
+  titleEl.textContent = "Loading project folder…";
+  try {
+    await loadProject(fileList);
+  } catch (err) {
+    showLoadError(err);
+  } finally {
+    ev.target.value = "";
+  }
 }
 
 function buildFilesMap(fileList) {
@@ -130,6 +150,19 @@ function detectLeafEntry(files) {
   return keys[0] ?? null;
 }
 
+function normalizeProjectFiles(files, entryPath) {
+  const projectRoot = detectProjectRoot(entryPath);
+  const prefix = projectRoot ? projectRoot + "/" : "";
+  /** @type {Record<string, string>} */
+  const normalized = {};
+  for (const [key, content] of Object.entries(files)) {
+    const rel = prefix && key.startsWith(prefix) ? key.slice(prefix.length) : key;
+    normalized[rel] = content;
+  }
+  const entryRel = prefix && entryPath.startsWith(prefix) ? entryPath.slice(prefix.length) : entryPath;
+  return { projectRoot, entryRel, files: normalized };
+}
+
 async function loadProject(fileList) {
   const { files, paths } = buildFilesMap(fileList);
   if (!paths.length) {
@@ -138,15 +171,15 @@ async function loadProject(fileList) {
   await readFilesIntoMap(fileList, files);
   const entryPath = detectLeafEntry(files);
   if (!entryPath) throw new Error("Could not detect leaf .vision entry");
-  const projectRoot = detectProjectRoot(entryPath);
+  const { projectRoot, entryRel, files: normalized } = normalizeProjectFiles(files, entryPath);
   const resp = await fetch("/__vision/compose", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ entryPath, files, projectRoot }),
+    body: JSON.stringify({ entryPath: entryRel, files: normalized, projectRoot }),
   });
   if (!resp.ok) throw new Error(await resp.text());
   finishLoad(await resp.json());
-  log(`Loaded project ${entryPath}`);
+  log(`Loaded project ${entryRel}`);
 }
 
 function hasImportDirectives(source) {
