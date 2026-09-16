@@ -1,0 +1,4 @@
+# DashSpec Studio — vision alignment project (VISION-ADR-0006 / GUIDERS-0051)
+project dashspec-studio
+root .
+entry dashspec-studio.vision

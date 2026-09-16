@@ -101,11 +101,11 @@ Align with [GUIDERS-ADR-0051](https://github.com/AI-Guiders/guiders-platform/blo
 
 | Context | Root |
 |---------|------|
-| `npm test` / Node parser | Directory containing entry `.vision` (single-file) **or** nearest manifest (future) |
-| Browser player | **Open project folder** uploads a virtual file map; `POST /__vision/compose` resolves logical + wire imports |
+| `npm test` / Node parser | `.visionproj` manifest (`root` + `entry`) **or** directory containing entry `.vision` (single-file) |
+| Browser player | **Open project** (directory containing `.visionproj`); `POST /__vision/project` resolves manifest + imports |
 | IDE / CDP (future) | `Authoring.Project` graph walker |
 
-v1 sketch player: **entry file directory** is project root.
+v1 sketch player: **`.visionproj` manifest** is project authority when present; else entry file directory (see [VISION-ADR-0006](./VISION-ADR-0006-authoring-project-file.md)).
 
 ### 5. Recommended layout (DashSpec Studio example)
 
@@ -206,7 +206,7 @@ Shared kit with GDL (0048 §3): blocks, tables, `#`, **`import`**.
 
 ## Non-goals
 
-- `Authoring.Project` manifest v1
+- Unified IDE dispatcher across slnx / csproj / gdlproj / visionproj (GUIDERS-0062 future)
 - Full wire stdlib mirror in browser (server bundles `stdlib/wires/` only)
 - `import` of `.catalog.gdl` / `.deck.gdl` (stay ADR-0003 GDL bridge)
 - Cross-repo URL imports

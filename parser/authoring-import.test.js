@@ -10,6 +10,7 @@ import {
   expandLogicalPattern,
   readVisionProjectMap,
 } from "./vision-compose.js";
+import { composeVisionProject } from "./vision-project.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const conformancePath = path.join(
@@ -80,4 +81,10 @@ test("composeVisionFromMap matches composeVisionFile for dashspec-studio", async
     fromMap.componentRegistry?.rows?.map((r) => r.id).sort(),
     fromFile.componentRegistry?.rows?.map((r) => r.id).sort(),
   );
+});
+
+test("composeVisionProject loads dashspec-studio via manifest", async () => {
+  const doc = await composeVisionProject(path.join(__dirname, "..", "examples", "dashspec-studio.visionproj"));
+  assert.equal(doc.id, "dashspec-studio");
+  assert.equal(doc.screens.length, 3);
 });
