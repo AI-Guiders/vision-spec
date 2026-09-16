@@ -12,8 +12,7 @@ const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
 let cachedBootDoc = null;
 
 async function injectPlayerBootDoc(html) {
-  const marker = "window.__VISION_INITIAL_DOC__";
-  if (html.includes(marker)) return html;
+  if (html.includes("window.__VISION_INITIAL_DOC__=")) return html;
   try {
     if (!cachedBootDoc) {
       cachedBootDoc = await composeVisionProject(

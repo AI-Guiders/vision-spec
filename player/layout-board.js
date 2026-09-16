@@ -1,25 +1,49 @@
-import { fixtureLayoutBoard } from "../parser/fixture-parse.js";
+/**
+ * Layout board sketch — consumes composed IR only (VISION-ADR-0005 §6).
+ * Parse lives server-side (LogicalPath import → compose); player never imports parser/.
+ */
+
 import { formatBracketBoard, rowPlacements, unplacedRefs } from "./layout-board-placer.js";
 
+/** @typedef {{ columns: number, cards: Record<string, { cardId: string, label: string }>, rows: string[][] }} LayoutBoardIr */
+
+/** @type {Map<string, LayoutBoardIr>} */
 const sessions = new Map();
 
 export function resetLayoutBoardSessions() {
   sessions.clear();
 }
 
+/** @param {unknown} fixture */
+function asLayoutBoardIr(fixture) {
+  if (!fixture || typeof fixture !== "object" || fixture.type !== "layout-board") return null;
+  return /** @type {LayoutBoardIr} */ (fixture);
+}
+
+/** @param {string} componentId @param {unknown} fixture */
 export function getLayoutBoardState(componentId, fixture) {
-  const typed = fixtureLayoutBoard(fixture);
   if (!sessions.has(componentId)) {
+    const typed = asLayoutBoardIr(fixture);
     sessions.set(
       componentId,
       typed
-        ? { columns: typed.columns, cards: { ...typed.cards }, rows: typed.rows.map((r) => [...r]) }
+        ? {
+            columns: typed.columns,
+            cards: { ...typed.cards },
+            rows: typed.rows.map((r) => [...r]),
+          }
         : { columns: 12, cards: {}, rows: [] },
     );
   }
   return sessions.get(componentId);
 }
 
+/**
+ * @param {HTMLElement} container
+ * @param {string} componentId
+ * @param {unknown} fixture composed doc.fixtures[id]
+ * @param {{ log?: (msg: string) => void, fireHandler?: (event: string, target: string, detail: string) => void }} [opts]
+ */
 export function renderLayoutBoard(container, componentId, fixture, opts = {}) {
   const state = getLayoutBoardState(componentId, fixture);
   const log = opts.log ?? (() => {});
@@ -31,7 +55,11 @@ export function renderLayoutBoard(container, componentId, fixture, opts = {}) {
 
   const header = document.createElement("div");
   header.className = "layout-board-header";
-  header.innerHTML = '<span class="layout-board-title">Tab layout board</span><span class="muted layout-board-meta">columns=' + state.columns + ' · drag refs between rows</span>';
+  header.innerHTML =
+    '<span class="layout-board-title">Tab layout board</span>' +
+    '<span class="muted layout-board-meta">columns=' +
+    state.columns +
+    " · drag refs · bracket SSOT below</span>";
   container.appendChild(header);
 
   const board = document.createElement("div");
@@ -94,87 +122,96 @@ export function renderLayoutBoard(container, componentId, fixture, opts = {}) {
     badge.textContent = "FIXTURE · live D&D";
     title.appendChild(badge);
   }
+}
 
-  function mkRow(state, rowIdx, log, rerender, opts) {
-    const row = document.createElement("div");
-    row.className = "layout-board-row";
-    row.appendChild(mkLabel("R" + (rowIdx + 1)));
-    const cells = document.createElement("div");
-    cells.className = "layout-board-cells";
-    const tokens = state.rows[rowIdx] ?? [];
-    for (let cellIdx = 0; cellIdx < tokens.length; cellIdx++) {
-      const cell = document.createElement("div");
-      cell.className = "layout-board-cell";
-      cell.appendChild(mkChip(state, tokens[cellIdx]));
-      wireDrop(cell, state, rowIdx, cellIdx, log, rerender, opts);
-      cells.appendChild(cell);
-    }
-    const tail = document.createElement("div");
-    tail.className = "layout-board-cell layout-board-cell-drop";
-    tail.textContent = "+";
-    wireDrop(tail, state, rowIdx, tokens.length, log, rerender, opts);
-    cells.appendChild(tail);
-    row.appendChild(cells);
-    return row;
+/** @param {LayoutBoardIr} state @param {number} rowIdx */
+function mkRow(state, rowIdx, log, rerender, opts) {
+  const row = document.createElement("div");
+  row.className = "layout-board-row";
+  row.appendChild(mkLabel("R" + (rowIdx + 1)));
+  const cells = document.createElement("div");
+  cells.className = "layout-board-cells";
+  const tokens = state.rows[rowIdx] ?? [];
+  for (let cellIdx = 0; cellIdx < tokens.length; cellIdx++) {
+    const cell = document.createElement("div");
+    cell.className = "layout-board-cell";
+    cell.appendChild(mkChip(state, tokens[cellIdx]));
+    wireDrop(cell, state, rowIdx, cellIdx, log, rerender, opts);
+    cells.appendChild(cell);
   }
+  const tail = document.createElement("div");
+  tail.className = "layout-board-cell layout-board-cell-drop";
+  tail.textContent = "+";
+  wireDrop(tail, state, rowIdx, tokens.length, log, rerender, opts);
+  cells.appendChild(tail);
+  row.appendChild(cells);
+  return row;
+}
 
-  function mkChip(state, ref) {
-    const meta = state.cards[ref] ?? { cardId: ref, label: ref };
-    const chip = document.createElement("div");
-    chip.className = "layout-board-chip";
-    chip.draggable = true;
-    chip.dataset.ref = ref;
-    chip.innerHTML = '<span class="layout-board-ref">' + ref + '</span><span class="layout-board-label">' + meta.label + "</span>";
-    chip.title = meta.cardId + " · drag to row";
-    chip.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("application/x-vision-layout-ref", ref);
-      e.dataTransfer.setData("text/plain", ref);
-      e.dataTransfer.effectAllowed = "move";
-      chip.classList.add("is-dragging");
-    });
-    chip.addEventListener("dragend", () => chip.classList.remove("is-dragging"));
-    return chip;
-  }
+/** @param {LayoutBoardIr} state @param {string} ref */
+function mkChip(state, ref) {
+  const meta = state.cards[ref] ?? { cardId: ref, label: ref };
+  const chip = document.createElement("div");
+  chip.className = "layout-board-chip";
+  chip.draggable = true;
+  chip.dataset.ref = ref;
+  chip.innerHTML =
+    '<span class="layout-board-ref">' +
+    ref +
+    '</span><span class="layout-board-label">' +
+    meta.label +
+    "</span>";
+  chip.title = meta.cardId + " · drag to row";
+  chip.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("application/x-vision-layout-ref", ref);
+    e.dataTransfer.setData("text/plain", ref);
+    e.dataTransfer.effectAllowed = "move";
+    chip.classList.add("is-dragging");
+  });
+  chip.addEventListener("dragend", () => chip.classList.remove("is-dragging"));
+  return chip;
+}
 
-  function wireDrop(el, state, rowIdx, cellIdx, log, rerender, opts) {
-    el.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      el.classList.add("is-drop-target");
-    });
-    el.addEventListener("dragleave", () => el.classList.remove("is-drop-target"));
-    el.addEventListener("drop", (e) => {
-      e.preventDefault();
-      el.classList.remove("is-drop-target");
-      const ref = e.dataTransfer.getData("application/x-vision-layout-ref") || e.dataTransfer.getData("text/plain");
-      if (!ref || !state.cards[ref]) return;
-      moveRef(state, ref, rowIdx, cellIdx);
-      const bracket = formatBracketBoard(state.rows);
-      log("layout-board drop " + ref + " → row " + (rowIdx + 1) + " · " + bracket);
-      opts.fireHandler?.("drop", "ref", ref + "→row" + (rowIdx + 1));
-      rerender();
-    });
-  }
+function wireDrop(el, state, rowIdx, cellIdx, log, rerender, opts) {
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    el.classList.add("is-drop-target");
+  });
+  el.addEventListener("dragleave", () => el.classList.remove("is-drop-target"));
+  el.addEventListener("drop", (e) => {
+    e.preventDefault();
+    el.classList.remove("is-drop-target");
+    const ref =
+      e.dataTransfer.getData("application/x-vision-layout-ref") ||
+      e.dataTransfer.getData("text/plain");
+    if (!ref || !state.cards[ref]) return;
+    moveRef(state, ref, rowIdx, cellIdx);
+    log("layout-board drop " + ref + " → row " + (rowIdx + 1) + " · " + formatBracketBoard(state.rows));
+    opts.fireHandler?.("drop", "ref", ref + "→row" + (rowIdx + 1));
+    rerender();
+  });
+}
 
-  function moveRef(state, ref, toRowIdx, toCellIdx) {
-    state.rows = state.rows.map((row) => row.filter((r) => r !== ref));
-    while (state.rows.length <= toRowIdx) state.rows.push([]);
-    const row = state.rows[toRowIdx];
-    const idx = Math.max(0, Math.min(cellIdx, row.length));
-    row.splice(idx, 0, ref);
-  }
+/** @param {LayoutBoardIr} state */
+function moveRef(state, ref, toRowIdx, toCellIdx) {
+  state.rows = state.rows.map((row) => row.filter((r) => r !== ref));
+  while (state.rows.length <= toRowIdx) state.rows.push([]);
+  const row = state.rows[toRowIdx];
+  const idx = Math.max(0, Math.min(cellIdx, row.length));
+  row.splice(idx, 0, ref);
+}
 
-  function mkLabel(text) {
-    const el = document.createElement("div");
-    el.className = "layout-board-section-label";
-    el.textContent = text;
-    return el;
-  }
+function mkLabel(text) {
+  const el = document.createElement("div");
+  el.className = "layout-board-section-label";
+  el.textContent = text;
+  return el;
+}
 
-  function mkMuted(text) {
-    const el = document.createElement("span");
-    el.className = "muted layout-board-empty";
-    el.textContent = text;
-    return el;
-  }
+function mkMuted(text) {
+  const el = document.createElement("span");
+  el.className = "muted layout-board-empty";
+  el.textContent = text;
+  return el;
 }
