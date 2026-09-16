@@ -12,37 +12,38 @@ const example = fs.readFileSync(
   "utf8",
 );
 
-test("mental-model plugin parses STUDIO-ADR-0002 deck lines", async () => {
+test("mental-model plugin parses federation cockpit deck lines", async () => {
   const doc = await parseVision(example);
   const studio = doc.screens.find((s) => s.id === "studio");
+  const mfd = doc.screens.find((s) => s.id === "studio-mfd");
   assert.ok(studio?.deck);
   assert.equal(studio.deck.preset, "report-author");
   assert.equal(studio.deck.topology, "(MFD)(F)");
-  assert.deepEqual(studio.deck.forward, ["report-preview"]);
-  assert.deepEqual(studio.deck.mfdTabs, ["Project", "Layout", "Pad"]);
-  assert.deepEqual(studio.deck.mfdSlots, ["spec-tree", "editor"]);
-  assert.equal(studio.deck.mfdSplit, "data-lab");
+  assert.deepEqual(studio.deck.forward, ["editor"]);
+  assert.deepEqual(studio.deck.mfdSlots, ["spec-tree"]);
   assert.equal(studio.deck.eicas, "resolve");
+  assert.equal(studio.mfdPage, undefined);
+  assert.equal(mfd?.mfdPage, true);
+  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "SQL", "Pad", "Preview"]);
+  assert.equal(mfd?.deck?.mfdSplit, "data-lab");
 });
 
-test("deck zone ids include MFD tab zones per STUDIO-ADR-0002", async () => {
+test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
   const doc = await parseVision(example);
-  const studio = doc.screens.find((s) => s.id === "studio");
+  const mfdScreen = doc.screens.find((s) => s.id === "studio-mfd");
   const plugins = resolvePlugins(doc);
-  const zones = deckZoneIds(studio, plugins);
+  const zones = deckZoneIds(mfdScreen, plugins);
   assert.ok(zones.has("spec-tree"));
-  assert.ok(zones.has("editor"));
   assert.ok(zones.has("report-preview"));
   assert.ok(zones.has("data-lab"));
   assert.ok(zones.has("resolve"));
   assert.ok(zones.has("script-pad"));
-  assert.ok(zones.has("layout-board"));
 });
 
-test("pad block and script-pad fixture", async () => {
+test("pad block lives on studio-mfd screen", async () => {
   const doc = await parseVision(example);
-  const studio = doc.screens.find((s) => s.id === "studio");
-  const pad = studio.blocks.find((b) => b.kind === "pad");
+  const mfdScreen = doc.screens.find((s) => s.id === "studio-mfd");
+  const pad = mfdScreen.blocks.find((b) => b.kind === "pad");
   assert.equal(pad?.id, "script-pad");
   assert.ok(doc.fixtures["script-pad"]?.length >= 2);
 });
@@ -50,4 +51,9 @@ test("pad block and script-pad fixture", async () => {
 test("data-lab repl uses three-pane SQL Browser sketch", async () => {
   const doc = await parseVision(example);
   assert.ok(doc.fixtures["data-lab"]?.length >= 3);
+});
+
+test("F12 transitions between Forward and MFD screens", async () => {
+  const doc = await parseVision(example);
+  assert.ok(doc.transitions.some((t) => t.from === "studio" && t.to === "studio-mfd" && t.when === "F12"));
 });

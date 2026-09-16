@@ -14,15 +14,16 @@ const example = fs.readFileSync(
 test("parse dashspec-studio example", async () => {
   const doc = await parseVision(example);
   assert.equal(doc.id, "dashspec-studio");
-  assert.equal(doc.screens.length, 2);
-  assert.equal(doc.screens[1].overlay, true);
+  assert.equal(doc.screens.length, 3);
+  assert.equal(doc.screens.find((s) => s.id === "command-palette")?.overlay, true);
   assert.ok(doc.plugins.includes("aiguiders-mental-model"));
   assert.equal(doc.screens[0].deck?.preset, "report-author");
   assert.ok(doc.fixtures["spec-tree"].length >= 3);
   assert.ok(doc.transitions.some((t) => t.when === "Ctrl+K"));
+  assert.ok(doc.transitions.some((t) => t.when === "F12"));
 });
 
-test("entry screen is non-overlay", async () => {
+test("entry screen is non-overlay Forward deck", async () => {
   const doc = await parseVision(example);
   assert.equal(entryScreen(doc).id, "studio");
 });

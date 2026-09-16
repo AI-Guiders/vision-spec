@@ -1,17 +1,22 @@
 /**
- * Render STUDIO-ADR-0002 report-author sketch:
- * Cockpit + PFD · Forward · MFD tabs + split · EICAS
+ * Federation cockpit sketch (GUIDERS ADR-0021 / STUDIO ADR-0002):
+ * PFD = orientation · Forward = primary work · MFD = secondary instruments (separate screen).
  */
 
 const REPORT_AUTHOR_TABS = [
   { id: "Project", label: "Project" },
-  { id: "Layout", label: "Layout*", disabled: true },
+  { id: "SQL", label: "SQL" },
   { id: "Pad", label: "Pad" },
+  { id: "Preview", label: "Preview" },
+  { id: "Layout", label: "Layout*", disabled: true },
 ];
 
 const TAB_ZONE = {
-  Layout: "layout-board",
+  Project: "spec-tree",
+  SQL: "data-lab",
   Pad: "script-pad",
+  Preview: "report-preview",
+  Layout: "layout-board",
 };
 
 export function renderDeckScreen(screen, { renderZone, labelForZone }) {
@@ -19,26 +24,47 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   if (!deck) return null;
 
   const root = document.createElement("div");
-  root.className = "deck-screen";
+  root.className = "deck-screen" + (screen.mfdPage ? " deck-screen-mfd" : " deck-screen-forward");
   root.dataset.preset = deck.preset ?? "";
   root.dataset.topology = deck.topology ?? "";
 
   root.appendChild(renderCockpit(deck));
 
+  if (screen.mfdPage) {
+    root.appendChild(renderMfdBand(deck, renderZone, labelForZone));
+  } else {
+    root.appendChild(renderForwardBand(deck, renderZone, labelForZone));
+    root.appendChild(renderNavHint("F12 → MFD instruments"));
+  }
+
+  if (deck.eicas) {
+    const eicas = document.createElement("div");
+    eicas.className = "deck-eicas deck-eicas-quiet";
+    eicas.appendChild(wrapZone(deck.eicas, "eicas", renderZone, labelForZone));
+    root.appendChild(eicas);
+  }
+
+  return root;
+}
+
+function renderForwardBand(deck, renderZone, labelForZone) {
   const forward = document.createElement("div");
-  forward.className = "deck-forward";
-  forward.appendChild(bandLabel("Forward · 2nd monitor (STUDIO-ADR-0001)"));
+  forward.className = "deck-forward deck-forward-primary";
+  forward.appendChild(bandLabel("Forward · primary work"));
   const forwardBody = document.createElement("div");
   forwardBody.className = "deck-forward-body";
-  for (const zoneId of deck.forward ?? []) {
+  for (const zoneId of deck.forward ?? ["editor"]) {
     forwardBody.appendChild(wrapZone(zoneId, "forward", renderZone, labelForZone));
   }
   forward.appendChild(forwardBody);
-  root.appendChild(forward);
+  return forward;
+}
 
+function renderMfdBand(deck, renderZone, labelForZone) {
   const mfd = document.createElement("div");
-  mfd.className = "deck-mfd";
-  mfd.appendChild(bandLabel("MFD"));
+  mfd.className = "deck-mfd deck-mfd-page";
+  mfd.appendChild(bandLabel("MFD · secondary instruments"));
+  mfd.appendChild(renderNavHint("F12 → Forward"));
 
   const tabs = deck.mfdTabs?.length ? deck.mfdTabs : ["Project"];
   const tabBar = document.createElement("div");
@@ -65,19 +91,8 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
     panel.dataset.tabId = tabId;
     panel.hidden = tabId !== activeTab;
 
-    if (tabId === "Project") {
-      const row = document.createElement("div");
-      row.className = "deck-mfd-project-row";
-      for (const zoneId of deck.mfdSlots ?? []) {
-        const wide = zoneId === "editor" || zoneId.endsWith("-editor");
-        row.appendChild(wrapZone(zoneId, wide ? "mfd-wide" : "mfd-narrow", renderZone, labelForZone));
-      }
-      panel.appendChild(row);
-    } else if (TAB_ZONE[tabId]) {
-      panel.appendChild(wrapZone(TAB_ZONE[tabId], "mfd-tab-fill", renderZone, labelForZone));
-    } else {
-      panel.innerHTML = `<span class="muted">${tabId} tab</span>`;
-    }
+    const zoneId = TAB_ZONE[tabId] ?? tabId.toLowerCase();
+    panel.appendChild(wrapZone(zoneId, "mfd-tab-fill", renderZone, labelForZone));
 
     if (!meta.disabled) {
       btn.addEventListener("click", () => {
@@ -105,23 +120,20 @@ export function renderDeckScreen(screen, { renderZone, labelForZone }) {
   main.appendChild(tabPanels);
   mfdRow.appendChild(main);
 
-  if (deck.mfdSplit) {
+  if (deck.mfdSplit && tabs.includes("SQL") && TAB_ZONE.SQL !== deck.mfdSplit) {
     mfdRow.appendChild(wrapZone(deck.mfdSplit, "mfd-split", renderZone, labelForZone));
   }
 
   mfd.appendChild(mfdRow);
-  root.appendChild(mfd);
-
-  if (deck.eicas) {
-    const eicas = document.createElement("div");
-    eicas.className = "deck-eicas deck-eicas-quiet";
-    eicas.appendChild(wrapZone(deck.eicas, "eicas", renderZone, labelForZone));
-    root.appendChild(eicas);
-  }
-
-  return root;
+  return mfd;
 }
 
+function renderNavHint(text) {
+  const hint = document.createElement("div");
+  hint.className = "deck-nav-hint muted";
+  hint.textContent = text;
+  return hint;
+}
 
 function renderCclBar() {
   const ccl = document.createElement("div");
@@ -165,7 +177,6 @@ function renderCockpit(deck) {
   pfd.innerHTML = `
     <span class="deck-pfd-chip">demo-soak</span>
     <span class="deck-pfd-chip">main</span>
-    <span class="deck-pfd-chip">demo-db · OK</span>
     <span class="deck-pfd-meta">${deck.preset ?? "preset"} · ${deck.topology ?? "topology"}</span>`;
   cockpit.appendChild(pfd);
 

@@ -9,11 +9,16 @@ import {
   wrapCatalogDocument,
   wrapDeckDocument,
 } from "./gdl-router.js";
-import {
-  invokeGdlBridgeAsync,
-  parseCatalogViaBridge,
-  parseDeckViaBridge,
-} from "./gdl-bridge.js";
+import { invokeGdlBridgeAsync } from "./gdl-bridge-core.js";
+
+/** @param {"catalog"|"deck"} kind @param {string} wrapped @param {string | undefined} gdlEndpoint */
+async function parseGdlBlock(kind, wrapped, gdlEndpoint) {
+  if (gdlEndpoint) return invokeGdlBridgeAsync(kind, wrapped, gdlEndpoint);
+  const bridge = await import("./gdl-bridge.js");
+  return kind === "catalog"
+    ? bridge.parseCatalogViaBridge(wrapped)
+    : bridge.parseDeckViaBridge(wrapped);
+}
 
 const KEYWORD_LINE = /^(vision|screen|fixture|go|on|end|use|catalog|deck)\b/i;
 const USE_LINE = /^use\s+(\S+)\s*$/i;
@@ -79,9 +84,7 @@ export async function parseVision(source, options = {}) {
       const id = trimmed.split(/\s+/)[1];
       const block = readTopLevelBlock(lines, i, "catalog");
       const wrapped = wrapCatalogDocument(id, block.body);
-      doc.catalog = gdlEndpoint
-        ? await invokeGdlBridgeAsync("catalog", wrapped, gdlEndpoint)
-        : parseCatalogViaBridge(wrapped);
+      doc.catalog = await parseGdlBlock("catalog", wrapped, gdlEndpoint);
       i = block.next;
       continue;
     }
@@ -90,9 +93,7 @@ export async function parseVision(source, options = {}) {
       const id = trimmed.split(/\s+/)[1];
       const block = readTopLevelBlock(lines, i, "deck");
       const wrapped = wrapDeckDocument(id, block.body);
-      doc.deck = gdlEndpoint
-        ? await invokeGdlBridgeAsync("deck", wrapped, gdlEndpoint)
-        : parseDeckViaBridge(wrapped);
+      doc.deck = await parseGdlBlock("deck", wrapped, gdlEndpoint);
       i = block.next;
       continue;
     }

@@ -2,6 +2,7 @@
 
 import { deckPresetToScreenDeck } from "../../parser/gdl-ir.js";
 
+const MFD_PAGE_LINE = /^mfd-page\s*$/i;
 const PRESET_LINE = /^preset\s+(\S+)\s*$/i;
 const USE_DECK_LINE = /^use-deck\s+(\S+)\s*$/i;
 const TOPOLOGY_LINE = /^topology\s+((?:\([^)]+\))+)\s*$/i;
@@ -11,14 +12,22 @@ const MFD_TABS_LINE = /^mfd-tabs\s+(.+)$/i;
 const SPLIT_LINE = /^split\s+(\S+)\s*$/i;
 const EICAS_LINE = /^eicas\s+(\S+)\s*$/i;
 
-/** report-author tab id → zone id (STUDIO-ADR-0002 §3) */
+/** report-author MFD tab id → zone id */
 const REPORT_AUTHOR_TAB_ZONES = {
-  Layout: "layout-board",
+  Project: "spec-tree",
+  SQL: "data-lab",
   Pad: "script-pad",
+  Preview: "report-preview",
+  Layout: "layout-board",
 };
 
 export function parseScreenLine(screen, trimmed, doc = null) {
   let m;
+
+  if ((m = trimmed.match(MFD_PAGE_LINE))) {
+    screen.mfdPage = true;
+    return true;
+  }
 
   if ((m = trimmed.match(USE_DECK_LINE))) {
     const deck = deckPresetToScreenDeck(doc?.deck, m[1]);
