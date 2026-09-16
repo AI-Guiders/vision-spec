@@ -3,7 +3,8 @@
 
 use aiguiders-mental-model
 
-import "authoring/dashspec-studio.base.vision"
+import <federation/vision/icon-defaults>
+import "authoring/registry/*.vision"
 import "authoring/components/*.vision"
 
 vision dashspec-studio

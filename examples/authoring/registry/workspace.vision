@@ -1,0 +1,11 @@
+# DashSpec Studio — MFD workspace instruments
+
+components dashspec-studio
+  table zone
+  | id             | kind    | label          |
+  | data-lab       | repl    | SQL Browser    |
+  | script-pad     | pad     | Script Pad     |
+  | report-preview | preview | Report Preview |
+  | resolve        | panel   | Resolve        |
+  | layout-board   | panel   | Layout board   |
+end components

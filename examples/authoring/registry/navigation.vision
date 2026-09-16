@@ -1,0 +1,9 @@
+# DashSpec Studio — navigation / command surfaces
+
+components dashspec-studio
+  table zone
+  | id      | kind         | label           |
+  | spec-tree | tree       | Project Browser |
+  | editor    | tabs       | Document editor |
+  | palette   | command-list | Command palette |
+end components

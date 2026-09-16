@@ -4,8 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tryParseImportLine } from "./authoring-import.js";
-import { composeVisionFile } from "./vision-compose.js";
-import { expandLogicalPattern } from "./vision-compose.js";
+import {
+  composeVisionFile,
+  composeVisionFromMap,
+  expandLogicalPattern,
+  readVisionProjectMap,
+} from "./vision-compose.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const conformancePath = path.join(
@@ -34,12 +38,25 @@ for (const vector of spec.vectors) {
   });
 }
 
-test("glob expands component pack files", () => {
+test("glob expands component and registry pack files", () => {
   const root = path.join(__dirname, "..", "examples");
-  const paths = expandLogicalPattern(root, "authoring/components/*.vision");
-  assert.ok(paths.includes("authoring/components/spec-tree.vision"));
-  assert.ok(paths.includes("authoring/components/data-lab.vision"));
-  assert.equal(paths.length, 3);
+  const componentPaths = expandLogicalPattern(root, "authoring/components/*.vision");
+  assert.ok(componentPaths.includes("authoring/components/spec-tree.vision"));
+  assert.ok(componentPaths.includes("authoring/components/data-lab.vision"));
+  assert.equal(componentPaths.length, 3);
+
+  const registryPaths = expandLogicalPattern(root, "authoring/registry/*.vision");
+  assert.ok(registryPaths.includes("authoring/registry/navigation.vision"));
+  assert.ok(registryPaths.includes("authoring/registry/workspace.vision"));
+  assert.equal(registryPaths.length, 2);
+});
+
+test("wire import federation/vision/icon-defaults resolves", async () => {
+  const doc = await composeVisionFile(path.join(__dirname, "..", "examples", "dashspec-studio.vision"));
+  assert.equal(doc.defaults?.iconLibrary, "codicons");
+  assert.ok(doc.iconLibraries?.some((lib) => lib.id === "codicons"));
+  const iconDiag = doc.diagnostics?.find((d) => d.code === "V-I006" && d.message.includes("icon-defaults"));
+  assert.equal(iconDiag, undefined);
 });
 
 test("compose dashspec-studio leaf + imports", async () => {
@@ -49,4 +66,18 @@ test("compose dashspec-studio leaf + imports", async () => {
   assert.ok(doc.componentRegistry?.rows?.some((r) => r.id === "spec-tree"));
   assert.ok(doc.presentations["spec-tree"]?.kinds?.length >= 3);
   assert.ok(doc.fixtures["script-pad"]);
+});
+
+test("composeVisionFromMap matches composeVisionFile for dashspec-studio", async () => {
+  const examples = path.join(__dirname, "..", "examples");
+  const entry = "dashspec-studio.vision";
+  const fromFile = await composeVisionFile(path.join(examples, entry));
+  const files = readVisionProjectMap(examples);
+  const fromMap = await composeVisionFromMap(entry, files, { projectRoot: examples });
+  assert.equal(fromMap.id, fromFile.id);
+  assert.equal(fromMap.screens.length, fromFile.screens.length);
+  assert.deepEqual(
+    fromMap.componentRegistry?.rows?.map((r) => r.id).sort(),
+    fromFile.componentRegistry?.rows?.map((r) => r.id).sort(),
+  );
 });

@@ -9,15 +9,37 @@ import { emptyVisionDocument, mergeVisionDocuments } from "./vision-merge.js";
 import { parseVisionFragment, parseVisionLeaf } from "./vision-parser.js";
 import { resolveOnTarget } from "./vision-graph.js";
 import { validateDocument } from "./vision-validate.js";
+import { resolveWireSource, wireCatalogRoot } from "./wire-catalog.js";
+
+/**
+ * @param {string} pattern
+ */
+function globToRegex(pattern) {
+  const normalized = pattern.replace(/\\/g, "/");
+  return new RegExp(
+    "^" +
+      normalized.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, ".") +
+      "$",
+  );
+}
 
 /**
  * @param {string} projectRoot
  * @param {string} logicalPattern
+ * @param {Record<string, string>} [files]
  * @returns {string[]}
  */
-export function expandLogicalPattern(projectRoot, logicalPattern) {
+export function expandLogicalPattern(projectRoot, logicalPattern, files) {
   const normalized = logicalPattern.replace(/\\/g, "/");
   if (!normalized.includes("*") && !normalized.includes("?")) return [normalized];
+
+  if (files) {
+    const rx = globToRegex(normalized);
+    return Object.keys(files)
+      .map((k) => k.replace(/\\/g, "/"))
+      .filter((k) => rx.test(k))
+      .sort();
+  }
 
   const slash = normalized.lastIndexOf("/");
   const dir = slash >= 0 ? normalized.slice(0, slash) : "";
@@ -25,9 +47,7 @@ export function expandLogicalPattern(projectRoot, logicalPattern) {
   const dirFull = dir ? path.join(projectRoot, dir) : projectRoot;
   if (!fs.existsSync(dirFull)) return [];
 
-  const rx = new RegExp(
-    "^" + filePattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$",
-  );
+  const rx = globToRegex(filePattern);
   return fs
     .readdirSync(dirFull)
     .filter((name) => rx.test(name))
@@ -38,15 +58,18 @@ export function expandLogicalPattern(projectRoot, logicalPattern) {
 /**
  * @param {string} source
  * @param {{
- *   projectRoot: string,
+ *   projectRoot?: string,
  *   readFile?: (logicalPath: string) => string,
+ *   files?: Record<string, string>,
+ *   resolveWire?: (wirePath: string) => string | null,
  *   gdlEndpoint?: string,
  *   strict?: boolean,
  *   _stack?: string[],
  * }} options
  */
 export async function composeVision(source, options) {
-  const projectRoot = options.projectRoot;
+  const projectRoot = options.projectRoot ?? "";
+  const files = options.files;
   const readFile = options.readFile ?? ((rel) => fs.readFileSync(path.join(projectRoot, rel), "utf8"));
   const stack = options._stack ?? [];
   /** @type {{ code: string, message: string, severity: "warning"|"error" }[]} */
@@ -65,15 +88,36 @@ export async function composeVision(source, options) {
     }
 
     if (imp.targetKind === "WireLibrary") {
-      composeDiagnostics.push({
-        code: "V-I006",
-        message: `Unresolved wire import <${imp.path}>`,
-        severity: "error",
+      const stackKey = `<${imp.path}>`;
+      if (stack.includes(stackKey)) {
+        composeDiagnostics.push({
+          code: "V-I005",
+          message: `Import cycle at <${imp.path}>`,
+          severity: "error",
+        });
+        continue;
+      }
+      const wireSource = options.resolveWire?.(imp.path) ?? resolveWireSource(imp.path);
+      if (!wireSource) {
+        composeDiagnostics.push({
+          code: "V-I006",
+          message: `Unresolved wire import <${imp.path}>`,
+          severity: "error",
+        });
+        continue;
+      }
+      const child = await composeVision(wireSource, {
+        ...options,
+        projectRoot: wireCatalogRoot(),
+        files: undefined,
+        readFile: (rel) => fs.readFileSync(path.join(wireCatalogRoot(), rel), "utf8"),
+        _stack: [...stack, stackKey],
       });
+      mergeVisionDocuments(merged, child, { diagnostics: composeDiagnostics });
       continue;
     }
 
-    const paths = expandLogicalPattern(projectRoot, imp.path);
+    const paths = expandLogicalPattern(projectRoot, imp.path, files);
     if (!paths.length) {
       composeDiagnostics.push({
         code: "V-I006",
@@ -84,8 +128,8 @@ export async function composeVision(source, options) {
     }
 
     for (const logicalPath of paths) {
-      const abs = path.resolve(projectRoot, logicalPath);
-      if (stack.includes(abs)) {
+      const stackKey = logicalPath.replace(/\\/g, "/");
+      if (stack.includes(stackKey)) {
         composeDiagnostics.push({
           code: "V-I005",
           message: `Import cycle at "${logicalPath}"`,
@@ -108,7 +152,7 @@ export async function composeVision(source, options) {
 
       const child = await composeVision(childSource, {
         ...options,
-        _stack: [...stack, abs],
+        _stack: [...stack, stackKey],
       });
       mergeVisionDocuments(merged, child, { diagnostics: composeDiagnostics });
     }
@@ -146,6 +190,63 @@ export async function composeVision(source, options) {
   }
 
   return merged;
+}
+
+/**
+ * @param {string} entryRel
+ * @param {Record<string, string>} files
+ * @param {{ gdlEndpoint?: string, strict?: boolean, projectRoot?: string }} [options]
+ */
+export async function composeVisionFromMap(entryRel, files, options = {}) {
+  const entry = entryRel.replace(/\\/g, "/");
+  const source = files[entry];
+  if (source == null) throw new Error(`V-I006: missing entry file "${entry}"`);
+  return composeVision(source, {
+    ...options,
+    projectRoot: options.projectRoot ?? "",
+    files,
+    readFile: (rel) => {
+      const key = rel.replace(/\\/g, "/");
+      if (!(key in files)) throw new Error(`ENOENT:${key}`);
+      return files[key];
+    },
+  });
+}
+
+/**
+ * @param {string} projectRootDir
+ * @returns {Record<string, string>}
+ */
+export function readVisionProjectMap(projectRootDir) {
+  const root = path.resolve(projectRootDir);
+  /** @type {Record<string, string>} */
+  const files = {};
+  walkVisionFiles(root, root, files);
+  return files;
+}
+
+/** @param {string} dir @param {string} root @param {Record<string, string>} out */
+function walkVisionFiles(dir, root, out) {
+  for (const name of fs.readdirSync(dir)) {
+    const full = path.join(dir, name);
+    if (fs.statSync(full).isDirectory()) walkVisionFiles(full, root, out);
+    else if (name.endsWith(".vision")) {
+      out[path.relative(root, full).replace(/\\/g, "/")] = fs.readFileSync(full, "utf8");
+    }
+  }
+}
+
+/**
+ * @param {Record<string, string>} files
+ * @returns {string | null}
+ */
+export function detectLeafEntry(files) {
+  const keys = Object.keys(files).sort();
+  for (const key of keys) {
+    const body = files[key];
+    if (/\bvision\s+/i.test(body) && /\bscreen\s+/i.test(body)) return key;
+  }
+  return keys[0] ?? null;
 }
 
 /**

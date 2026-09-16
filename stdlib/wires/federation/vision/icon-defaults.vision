@@ -1,0 +1,9 @@
+# Federation wire — VisionSpec icon defaults (GUIDERS-0052)
+
+defaults
+  icon.library = codicons
+end defaults
+
+icon-libraries
+  codicons   source npm:@vscode/codicons
+end icon-libraries
