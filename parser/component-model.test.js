@@ -27,6 +27,20 @@ test("parseFixtureBody parses typed tree fixtures", () => {
   assert.equal(fixture.nodes[0].children[0].artifactKind, "dashspec");
 });
 
+test("parseFixtureBody parses layout-board fixtures", () => {
+  const fixture = parseFixtureBody([
+    "columns 12",
+    'card Q peak "Peak by app"',
+    "card W util Util summary",
+    "row Q W",
+    "row E",
+  ]);
+  assert.equal(fixture.type, "layout-board");
+  assert.equal(fixture.columns, 12);
+  assert.equal(fixture.cards.Q.label, "Peak by app");
+  assert.deepEqual(fixture.rows, [["Q", "W"], ["E"]]);
+});
+
 test("parseFixtureBody parses keyline fixtures", () => {
   const fixture = parseFixtureBody(["connector demo-db", "repl SELECT 1"]);
   assert.equal(fixture.type, "keylines");

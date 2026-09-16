@@ -56,11 +56,12 @@ screen studio
 screen studio-mfd
   mfd-page
   use-deck report-author
-  mfd-tabs Project | Sources | Pad | Preview
+  mfd-tabs Project | Sources | Pad | Preview | Layout
   component spec-tree tree
   component environment-readiness panel
   component script-pad pad
   component report-preview preview
+  component layout-board panel
   component resolve panel
 
 screen command-palette overlay

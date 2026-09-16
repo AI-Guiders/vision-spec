@@ -1,0 +1,9 @@
+fixture layout-board
+  columns 12
+  card Q peak "Peak by app"
+  card W util "Util summary"
+  card E events "Events detail"
+  card R heat "Heat days"
+  row Q W
+  row E
+end fixture

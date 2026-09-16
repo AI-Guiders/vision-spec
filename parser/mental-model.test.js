@@ -23,7 +23,7 @@ test("mental-model plugin parses federation cockpit deck lines", async () => {
   assert.equal(studio.mfdPage, undefined);
   assert.equal(studio.deck.forwardDock, "data-lab");
   assert.equal(mfd?.mfdPage, true);
-  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "Pad", "Preview"]);
+  assert.deepEqual(mfd?.deck?.mfdTabs, ["Project", "Sources", "Pad", "Preview", "Layout"]);
   assert.equal(mfd?.deck?.mfdSplit, undefined);
 });
 
@@ -38,7 +38,7 @@ test("deck zone ids include MFD tab zones on studio-mfd screen", async () => {
   assert.ok(!zones.has("data-lab"), "SQL dock lives on Forward screen only");
   assert.ok(zones.has("resolve"));
   assert.ok(zones.has("script-pad"));
-  assert.ok(!zones.has("layout-board"), "Phase 2 — not in mfd-tabs yet");
+  assert.ok(zones.has("layout-board"), "Layout tab maps to layout-board zone");
 });
 
 test("data-lab repl docks under editor on Forward screen", async () => {

@@ -44,8 +44,9 @@ test("glob expands component and registry pack files", () => {
   const componentPaths = expandLogicalPattern(root, "authoring/components/*.vision");
   assert.ok(componentPaths.includes("authoring/components/spec-tree.vision"));
   assert.ok(componentPaths.includes("authoring/components/data-lab.vision"));
-  assert.equal(componentPaths.length, 4);
+  assert.equal(componentPaths.length, 5);
   assert.ok(componentPaths.includes("authoring/components/environment-readiness.vision"));
+  assert.ok(componentPaths.includes("authoring/components/layout-board.vision"));
 
   const registryPaths = expandLogicalPattern(root, "authoring/registry/*.vision");
   assert.ok(registryPaths.includes("authoring/registry/navigation.vision"));

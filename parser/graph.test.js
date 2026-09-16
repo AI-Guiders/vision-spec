@@ -56,8 +56,8 @@ test("transition graph links components for on handlers", async () => {
   );
   assert.ok(graph.nodes.some((n) => n.kind === "component" && n.componentId === "spec-tree"));
   assert.ok(
-    !graph.nodes.some((n) => n.kind === "component" && n.componentId === "layout-board"),
-    "layout-board is Phase 2 — no screen component until Layout tab ships",
+    graph.nodes.some((n) => n.kind === "component" && n.componentId === "layout-board"),
+    "layout-board is a deck zone instrument on studio-mfd",
   );
   assert.ok(graph.nodes.some((n) => n.kind === "screen" && n.label.includes("report-author")));
 });

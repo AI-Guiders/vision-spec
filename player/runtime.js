@@ -7,6 +7,7 @@ import {
   parseReadinessFixtureLines,
   renderEnvironmentReadinessPage,
 } from "./environment-readiness-page.js";
+import { renderLayoutBoard, resetLayoutBoardSessions } from "./layout-board.js";
 import {
   colorTokenCssVar,
   ensureIconLibraries,
@@ -183,6 +184,7 @@ function hasImportDirectives(source) {
 }
 
 function finishLoad(loaded) {
+  resetLayoutBoardSessions();
   doc = loaded;
   ensureIconLibraries(doc);
   titleEl.textContent = doc.title || doc.id;
@@ -388,7 +390,18 @@ function renderComponent(comp, screen) {
         wrap.classList.add("resolve-quiet");
         title.remove();
       } else if (comp.id === "layout-board") {
-        body.innerHTML = `<div class="layout-board-sketch muted">Layout board · Phase 2<br/>grammar exists · drag UI later</div>`;
+        wrap.classList.add("layout-board-panel");
+        title.remove();
+        renderLayoutBoard(body, comp.id, doc.fixtures[comp.id], {
+          log,
+          fireHandler: (event, target, detail) => {
+            const h = doc.handlers.find(
+              (x) => x.component === comp.id && x.event === event && x.target === target,
+            );
+            if (h) fireHandler(comp.id, event, target, detail);
+            else log(`layout-board ${event} ${target}: ${detail}`);
+          },
+        });
       } else {
         body.textContent = `${comp.id} panel`;
       }

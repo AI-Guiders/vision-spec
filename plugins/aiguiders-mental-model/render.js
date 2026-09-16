@@ -24,7 +24,7 @@ const REPORT_AUTHOR_TABS = [
   { id: "SQL", label: "SQL" },
   { id: "Pad", label: "Pad" },
   { id: "Preview", label: "Preview" },
-  { id: "Layout", label: "Layout*", disabled: true },
+  { id: "Layout", label: "Layout" },
 ];
 
 const TAB_ZONE = {
@@ -124,7 +124,7 @@ function renderMfdBand(deck, renderZone, labelForZone) {
     btn.dataset.tabId = tabId;
     if (meta.disabled) {
       btn.disabled = true;
-      btn.title = "Phase 2 — layout board";
+      btn.title = "Layout board sketch";
     }
 
     const panel = document.createElement("div");
