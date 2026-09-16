@@ -463,9 +463,14 @@ select, .file-btn, button.file-btn {
 .deck-mfd-page,
 .deck-mfd-row,
 .deck-mfd-main,
-.deck-mfd-tab-panels,
-.deck-mfd-tab-panel {
+.deck-mfd-tab-panels {
   /* band grid/flex from deck IR inline */
+}
+
+.deck-mfd-tab-panel:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .deck-band-label {
@@ -576,6 +581,16 @@ select, .file-btn, button.file-btn {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.deck-zone.mfd-tab-fill .deck-zone-body .sketch-block {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.deck-zone.mfd-tab-fill .block-body {
+  flex: 1 1 auto;
+  min-height: min-content;
 }
 
 .deck-zone-body .block-title { display: none; }
