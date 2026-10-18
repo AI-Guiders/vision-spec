@@ -1,0 +1,16 @@
+# Нормализация переводов строк: в репозитории LF.
+# Причина: без этого инструменты, пишущие CRLF, создают вечный churn в статусе.
+* text=auto eol=lf
+*.sln text eol=crlf
+*.slnx text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Бинарное — не трогать
+*.dll binary
+*.pdb binary
+*.nupkg binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
